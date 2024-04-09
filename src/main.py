@@ -3,93 +3,95 @@ from lark import Lark, Transformer
 plush_grammar = """
     start: (declaration | definition | statement)*
 
-    declaration : vars_declaration
+    declaration : val_declaration
+                | var_declaration
                 | function_signature ";" -> function_declaration
     
-    definition  : vars_definition
+    definition  : val_definition
+                | var_definition
                 | function_signature block -> function_definition
+                | assignment
+    
+    assignment  : NAME ASSIGN expression ";" -> assignment
 
-    vars_definition : VAL NAME ":" type DEF expression ";" -> val_definition
-                    | VAR NAME ":" type DEF expression ";" -> var_definition
-                    | NAME DEF expression ";" -> assign
+    val_definition  : val_signature ASSIGN expression ";" -> val_definition
+    var_definition  : var_signature ASSIGN expression ";" -> var_definition
     
-    vars_declaration: VAL NAME ":" type ";" -> val_declaration
-                    | VAR NAME ":" type ";" -> var_declaration
+    val_declaration: val_signature ";" -> val_declaration
+    var_declaration: var_signature ";" -> var_declaration
     
-    
+    var_signature  : VAR NAME ":" type -> var_signature
+    val_signature  : VAL NAME ":" type -> val_signature
 
-    list_params: param ("," param)*
-    param: VAL NAME ":" type
+    list_params: val_signature ("," val_signature)*
 
     function_signature: FUNCTION NAME "(" (list_params)? ")" ":" type
     
-    block: "{" (vars_declaration | vars_definition | statement)* "}"
+    block: "{" (val_definition | val_declaration | var_definition| var_declaration | assignment |statement)* "}"
 
     statement   : IF "(" expression ")" block (ELSE block)? -> if_statement
                 | WHILE "(" expression ")" block -> while_statement
     
-    expression  : arithmetic_expression
-                | logical_expression
-                
+    expression  : logic_less_priority
 
-    arithmetic_expression: arith_less_priority
-
+    logic_less_priority : logic_high_priority
+                        | logic_less_priority OR logic_high_priority -> or
     
+    logic_high_priority : clause
+                        | logic_high_priority AND clause -> and
+    
+    clause  : arith_less_priority
+            | arith_less_priority EQUAL arith_less_priority -> equal
+            | arith_less_priority NOT_EQUAL arith_less_priority -> not_equal
+            | arith_less_priority LT arith_less_priority -> lt
+            | arith_less_priority GT arith_less_priority -> gt
+            | arith_less_priority LTE arith_less_priority -> lte
+            | arith_less_priority GTE arith_less_priority -> gte
+    
+
     arith_less_priority : arith_high_priority
                         | arith_less_priority "+" arith_high_priority   -> add
                         | arith_less_priority "-" arith_high_priority   -> sub
 
-    arith_high_priority : arithmetic_literal
-                        | arith_high_priority "*" arithmetic_literal  -> mul
-                        | arith_high_priority "/" arithmetic_literal  -> div
-                        | arith_high_priority "%" arithmetic_literal  -> mod
-                        | "-" arithmetic_literal -> neg
-                        | "(" arithmetic_expression ")" -> parenthesis
+    arith_high_priority : atom
+                        | arith_high_priority "*" atom  -> mul
+                        | arith_high_priority "/" atom  -> div
+                        | arith_high_priority "%" atom  -> mod
     
-    arithmetic_literal  : INT -> int
-                        | FLOAT -> float
-                        | ARITH_NAME
+    atom    : INT       -> int
+            | FLOAT     -> float
+            | NAME      -> var
+            | BOOLEAN   -> boolean    
+            | "-" atom -> unary_minus
+            | "!" atom -> not
+            | "(" arith_less_priority ")" -> parenthesis     
+            | array_access 
+            | function_call
 
-    logical_expression  : or_expression
-
-    or_expression   : and_expression
-                    | or_expression OR and_expression -> or
-    
-    and_expression  : clause
-                    | and_expression AND clause -> and
-    
-    clause  : logic_literal
-            | arithmetic_expression LT arithmetic_expression   -> lt_clause
-            | arithmetic_expression LTE arithmetic_expression  -> lte_clause
-            | arithmetic_expression GT arithmetic_expression   -> gt_clause
-            | arithmetic_expression GTE arithmetic_expression  -> gte_clause
-            | expression EQUAL expression                  -> eq_clause
-            | expression NOT_EQUAL expression              -> neq_clause
-            | "!" logical_expression        -> not_clause
-            | "(" logical_expression ")"    -> parenthesis
-            
-
-                        
-    logic_literal   : "true"    -> bool_true
-                    | "false"   -> bool_false
-                    | LOGIC_NAME
+    array_access: NAME "[" expression "]"  
+    function_call: NAME "(" (expression ("," expression)*)? ")"   
     
     type: "int" -> int_type
         | "float" -> float_type
         | "double" -> double_type
         | "string" -> string_type
+        | "boolean" -> boolean_type
         | "[" type "]" -> array_type
     
+    NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
     IF  : "if"
     ELSE: "else"
     WHILE: "while"
     FUNCTION: "function"
-    INT: /[0-9]+/
+
+    INT: /[0-9_]+/
     FLOAT: /[0-9]*\.[0-9]+/
     STRING: /\"[^"]*\"/
+    BOOLEAN: "true" | "false"
+
     VAL: "val"
     VAR: "var"
-    DEF: ":="
+    ASSIGN: ":="
     OR: "||"
     AND: "&&"
     EQUAL: "="
@@ -98,39 +100,44 @@ plush_grammar = """
     LTE: "<="
     GT: ">"
     GTE: ">="
-    NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
-    ARITH_NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
-    LOGIC_NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
-    COMMENT: /#[^\n]*\n$/x
+    NEG: "!"
+    COMMENT: /\#[^\r\n]+/x
 
     %import common.NEWLINE
-    %ignore NEWLINE
     %ignore /\s+/
+    %ignore COMMENT
+    %ignore NEWLINE
 
 """
-#  COMENTARIOS NAO FUNCIONAM
+# TODO: regex dos ints
+# TODO: COMENTARIOS NAO FUNCIONAM
+# TODO: ARRAYS
 
-parser = Lark(plush_grammar,parser="lalr" ,start='start')
+parser = Lark(plush_grammar,parser="lalr")
 
 def parse_plush(program : str):
-    return parser.parse(program.strip(), lambda x: True)
+    return parser.parse(program.strip())
 
 # Example usage:
 program = """
     var x : int;
 
-    x := 1;
+    x := 1; # ola
 
-    val y : int := x || x;
+    val y : int := -x + x;
+
+    var z : boolean := !x || y < 1;
 
     function sum(val a: int,val b: int) : int;
 
     function sum(val a: int, val b: int) : int {
         var c : int;
-        c := a + b * 1;
-        sum := c;
+        c := a + b;
+        sum := 1;
     }
+
+    val sum_result : int := sum(1+y,array[sum(0,-1_0)]);
    
 """
 tree = parse_plush(program)
-print(tree.pretty())
+print(tree)
