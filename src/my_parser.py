@@ -1,7 +1,7 @@
-from lark import Lark, Transformer
+from lark import Lark
 
 plush_grammar = """
-    start: (declaration | definition | statement)*
+    start: (declaration | definition | function_call ";")*
 
     declaration : val_declaration
                 | var_declaration
@@ -33,7 +33,6 @@ plush_grammar = """
 
     statement   : IF  expression block (ELSE block)? -> if_statement
                 | WHILE expression block -> while_statement
-                | function_call ";"
     
     expression  : logic_less_priority
 
@@ -115,20 +114,23 @@ plush_grammar = """
 
 """
 # TODO: regex dos ints
+# TODO: true e false estao a ser reconhecidos como variaveis
+# TODO: verificar que if e whiles so funcionam dentro de funcs
 
 parser = Lark(plush_grammar,parser="lalr")
 
 def parse_plush(program : str):
     return parser.parse(program.strip())
 
-# Example usage:
-program = """
-    val x : int := 1_0_0_;
 
-   
-"""
+if __name__ == "__main__":
+    # Example usage:
+    program = """
+        val x: int := 5;
+    """
 
-# file = open("../../plush_testsuite/0_valid/maxRangeSquared.pl","r")
-# program = file.read()
-tree = parse_plush(program)
-print(tree.pretty())
+    # file = open("../../plush_testsuite/0_valid/maxRangeSquared.pl","r")
+    # program = file.read()
+    tree = parse_plush(program)
+    print(tree.pretty())
+    # print(tree)
