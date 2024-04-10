@@ -11,8 +11,10 @@ plush_grammar = """
                 | var_definition
                 | function_signature block -> function_definition
                 | assignment
+                | array_position_assignment
     
     assignment  : NAME ASSIGN expression ";" -> assignment
+    array_position_assignment: NAME "[" expression "]" ASSIGN expression ";"
 
     val_definition  : val_signature ASSIGN expression ";" -> val_definition
     var_definition  : var_signature ASSIGN expression ";" -> var_definition
@@ -23,14 +25,15 @@ plush_grammar = """
     var_signature  : VAR NAME ":" type -> var_signature
     val_signature  : VAL NAME ":" type -> val_signature
 
-    list_params: val_signature ("," val_signature)*
+    list_params: (val_signature | var_signature) ("," (val_signature | var_signature))*
 
-    function_signature: FUNCTION NAME "(" (list_params)? ")" ":" type
+    function_signature: FUNCTION NAME "(" (list_params)? ")" (":" type)?
     
     block: "{" (val_definition | val_declaration | var_definition| var_declaration | assignment |statement)* "}"
 
-    statement   : IF "(" expression ")" block (ELSE block)? -> if_statement
-                | WHILE "(" expression ")" block -> while_statement
+    statement   : IF  expression block (ELSE block)? -> if_statement
+                | WHILE expression block -> while_statement
+                | function_call ";"
     
     expression  : logic_less_priority
 
@@ -54,6 +57,7 @@ plush_grammar = """
                         | arith_less_priority "-" arith_high_priority   -> sub
 
     arith_high_priority : atom
+                        | arith_high_priority "^" arith_high_priority -> power
                         | arith_high_priority "*" atom  -> mul
                         | arith_high_priority "/" atom  -> div
                         | arith_high_priority "%" atom  -> mod
@@ -61,10 +65,11 @@ plush_grammar = """
     atom    : INT       -> int
             | FLOAT     -> float
             | NAME      -> var
-            | BOOLEAN   -> boolean    
+            | BOOLEAN   -> boolean  
+            | STRING    -> string  
             | "-" atom -> unary_minus
             | "!" atom -> not
-            | "(" arith_less_priority ")" -> parenthesis     
+            | "(" logic_less_priority ")" -> parenthesis     
             | array_access 
             | function_call
 
@@ -84,7 +89,7 @@ plush_grammar = """
     WHILE: "while"
     FUNCTION: "function"
 
-    INT: /[0-9_]+/
+    INT: /[0-9](_*[0-9])*/
     FLOAT: /[0-9]*\.[0-9]+/
     STRING: /\"[^"]*\"/
     BOOLEAN: "true" | "false"
@@ -110,8 +115,6 @@ plush_grammar = """
 
 """
 # TODO: regex dos ints
-# TODO: COMENTARIOS NAO FUNCIONAM
-# TODO: ARRAYS
 
 parser = Lark(plush_grammar,parser="lalr")
 
@@ -120,24 +123,12 @@ def parse_plush(program : str):
 
 # Example usage:
 program = """
-    var x : int;
+    val x : int := 1_0_0_;
 
-    x := 1; # ola
-
-    val y : int := -x + x;
-
-    var z : boolean := !x || y < 1;
-
-    function sum(val a: int,val b: int) : int;
-
-    function sum(val a: int, val b: int) : int {
-        var c : int;
-        c := a + b;
-        sum := 1;
-    }
-
-    val sum_result : int := sum(1+y,array[sum(0,-1_0)]);
    
 """
+
+# file = open("../../plush_testsuite/0_valid/maxRangeSquared.pl","r")
+# program = file.read()
 tree = parse_plush(program)
-print(tree)
+print(tree.pretty())
