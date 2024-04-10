@@ -1,48 +1,48 @@
 from lark import Lark
 
 plush_grammar = """
-    start: (declaration | definition | function_call ";")*
+    ?start: (declaration | definition | function_call ";")*
 
-    declaration : val_declaration
+    ?declaration : val_declaration
                 | var_declaration
                 | function_signature ";" -> function_declaration
     
-    definition  : val_definition
+    ?definition  : val_definition
                 | var_definition
                 | function_signature block -> function_definition
                 | assignment
                 | array_position_assignment
     
-    assignment  : NAME ASSIGN expression ";" -> assignment
-    array_position_assignment: NAME "[" expression "]" ASSIGN expression ";"
+    ?assignment  : NAME ASSIGN expression ";" -> assignment
+    ?array_position_assignment: NAME "[" expression "]" ASSIGN expression ";"
 
-    val_definition  : val_signature ASSIGN expression ";" -> val_definition
-    var_definition  : var_signature ASSIGN expression ";" -> var_definition
+    ?val_definition  : val_signature ASSIGN expression ";" -> val_definition
+    ?var_definition  : var_signature ASSIGN expression ";" -> var_definition
     
-    val_declaration: val_signature ";" -> val_declaration
-    var_declaration: var_signature ";" -> var_declaration
+    ?val_declaration: val_signature ";" -> val_declaration
+    ?var_declaration: var_signature ";" -> var_declaration
     
-    var_signature  : VAR NAME ":" type -> var_signature
-    val_signature  : VAL NAME ":" type -> val_signature
+    ?var_signature  : VAR NAME ":" type 
+    ?val_signature  : VAL NAME ":" type
 
-    list_params: (val_signature | var_signature) ("," (val_signature | var_signature))*
+    params: (val_signature | var_signature) ("," (val_signature | var_signature))*
 
-    function_signature: FUNCTION NAME "(" (list_params)? ")" (":" type)?
+    ?function_signature: FUNCTION NAME "(" params? ")" (":" type)?
     
-    block: "{" (val_definition | val_declaration | var_definition| var_declaration | assignment |statement)* "}"
+    ?block: "{" (val_definition | val_declaration | var_definition| var_declaration | assignment | statement | function_call ";")* "}"
 
-    statement   : IF  expression block (ELSE block)? -> if_statement
-                | WHILE expression block -> while_statement
+    ?statement  : IF  expression block (ELSE block)?
+                | WHILE expression block
     
-    expression  : logic_less_priority
+    ?expression  : logic_less_priority
 
-    logic_less_priority : logic_high_priority
+    ?logic_less_priority : logic_high_priority
                         | logic_less_priority OR logic_high_priority -> or
     
-    logic_high_priority : clause
+    ?logic_high_priority : clause
                         | logic_high_priority AND clause -> and
     
-    clause  : arith_less_priority
+    ?clause  : arith_less_priority
             | arith_less_priority EQUAL arith_less_priority -> equal
             | arith_less_priority NOT_EQUAL arith_less_priority -> not_equal
             | arith_less_priority LT arith_less_priority -> lt
@@ -50,32 +50,31 @@ plush_grammar = """
             | arith_less_priority LTE arith_less_priority -> lte
             | arith_less_priority GTE arith_less_priority -> gte
     
-
-    arith_less_priority : arith_high_priority
+    ?arith_less_priority : arith_high_priority
                         | arith_less_priority "+" arith_high_priority   -> add
                         | arith_less_priority "-" arith_high_priority   -> sub
 
-    arith_high_priority : atom
+    ?arith_high_priority : atom
                         | arith_high_priority "^" arith_high_priority -> power
                         | arith_high_priority "*" atom  -> mul
                         | arith_high_priority "/" atom  -> div
                         | arith_high_priority "%" atom  -> mod
     
-    atom    : INT       -> int
+    ?atom    : INT       -> int
             | FLOAT     -> float
-            | NAME      -> var
             | BOOLEAN   -> boolean  
+            | NAME      -> var
             | STRING    -> string  
             | "-" atom -> unary_minus
             | "!" atom -> not
-            | "(" logic_less_priority ")" -> parenthesis     
+            | "(" logic_less_priority ")"     
             | array_access 
             | function_call
 
-    array_access: NAME "[" expression "]"  
-    function_call: NAME "(" (expression ("," expression)*)? ")"   
+    ?array_access: NAME "[" expression "]"  
+    ?function_call: NAME "(" (expression ("," expression)*)? ")"   
     
-    type: "int" -> int_type
+    ?type: "int" -> int_type
         | "float" -> float_type
         | "double" -> double_type
         | "string" -> string_type
@@ -105,7 +104,7 @@ plush_grammar = """
     GT: ">"
     GTE: ">="
     NEG: "!"
-    COMMENT: /\#[^\r\n]+/x
+    COMMENT: /\#[^\n]+/x
 
     %import common.NEWLINE
     %ignore /\s+/
@@ -126,10 +125,20 @@ def parse_plush(program : str):
 if __name__ == "__main__":
     # Example usage:
     program = """
-        val x: int := 5;
+        function main(var args : [string]){
+        
+            if 1 < 2 {
+            print("1 < 2");
+            } 
+            else {
+                print("1 >= 2");
+            }
+
+            var a : int := to_int(args[0]);
+        }
     """
 
-    # file = open("../../plush_testsuite/0_valid/maxRangeSquared.pl","r")
+    file = open("../../plush_testsuite/0_valid/maxRangeSquared.pl","r")
     # program = file.read()
     tree = parse_plush(program)
     print(tree.pretty())
