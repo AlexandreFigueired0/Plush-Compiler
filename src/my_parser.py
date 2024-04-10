@@ -16,11 +16,11 @@ plush_grammar = """
     ?assignment  : NAME ASSIGN expression ";" -> assignment
     ?array_position_assignment: NAME "[" expression "]" ASSIGN expression ";"
 
-    ?val_definition  : val_signature ASSIGN expression ";" -> val_definition
-    ?var_definition  : var_signature ASSIGN expression ";" -> var_definition
+    ?val_definition  : val_signature ASSIGN expression ";"
+    ?var_definition  : var_signature ASSIGN expression ";"
     
-    ?val_declaration: val_signature ";" -> val_declaration
-    ?var_declaration: var_signature ";" -> var_declaration
+    ?val_declaration: val_signature ";" 
+    ?var_declaration: var_signature ";"
     
     ?var_signature  : VAR NAME ":" type 
     ?val_signature  : VAL NAME ":" type
@@ -114,7 +114,7 @@ plush_grammar = """
 """
 # TODO: regex dos ints
 # TODO: true e false estao a ser reconhecidos como variaveis
-# TODO: verificar que if e whiles so funcionam dentro de funcs
+# TODO: simplificar a arvore resolvida, os ? ajudaram muito mas nao percebi o que fazem, há mais formas
 
 parser = Lark(plush_grammar,parser="lalr")
 
@@ -138,7 +138,7 @@ if __name__ == "__main__":
         }
     """
 
-    file = open("../../plush_testsuite/0_valid/maxRangeSquared.pl","r")
+    # file = open("../../plush_testsuite/0_valid/maxRangeSquared.pl","r")
     # program = file.read()
     tree = parse_plush(program)
     print(tree.pretty())
