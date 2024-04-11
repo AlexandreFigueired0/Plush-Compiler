@@ -1,54 +1,54 @@
 from lark import Lark
 
 plush_grammar = """
-    ?start: (declaration | definition | function_call ";")*
+    start: (declaration | definition)*
 
-    ?declaration : val_declaration
+    ?declaration: val_declaration
                 | var_declaration
-                | function_signature ";" -> function_declaration
+                | "function" NAME "(" params ")" (":" type)? ";" -> function_declaration
     
-    ?definition  : val_definition
+    ?definition : val_definition
                 | var_definition
-                | function_signature block -> function_definition
+                | "function" NAME "(" params ")" (":" type)? block -> function_definition
                 | assignment
                 | array_position_assignment
     
-    ?assignment  : NAME ASSIGN expression ";" -> assignment
-    ?array_position_assignment: NAME "[" expression "]" ASSIGN expression ";"
+    ?assignment  : NAME ":=" expression ";" -> assignment
+    ?array_position_assignment: NAME "[" expression "]" ":=" expression ";"
 
-    ?val_definition  : val_signature ASSIGN expression ";"
-    ?var_definition  : var_signature ASSIGN expression ";"
+    ?val_definition  : "val" NAME ":" type ":=" expression ";"
+    ?var_definition  : "var" NAME ":" type  ":=" expression ";"
     
-    ?val_declaration: val_signature ";" 
-    ?var_declaration: var_signature ";"
+    ?val_declaration: "val" NAME ":" type ";" 
+    ?var_declaration: "var" NAME ":" type  ";"
     
-    ?var_signature  : VAR NAME ":" type 
-    ?val_signature  : VAL NAME ":" type
+    params: param ("," param)*
+            |
+    param  : "val" NAME ":" type  -> val_param
+            | "var" NAME ":" type  -> var_param
 
-    params: (val_signature | var_signature) ("," (val_signature | var_signature))*
+    block: "{" ( var_declaration | var_declaration | val_definition | var_definition | assignment | array_position_assignment | statement | (function_call ";") )* "}"
 
-    ?function_signature: FUNCTION NAME "(" params? ")" (":" type)?
-    
-    ?block: "{" (val_definition | val_declaration | var_definition| var_declaration | assignment | statement | function_call ";")* "}"
-
-    ?statement  : IF  expression block (ELSE block)?
-                | WHILE expression block
+    ?statement  : "if"  expression block -> if
+                | "if"  expression block "else" block -> if_else
+                | "while" expression block -> while
+                
     
     ?expression  : logic_less_priority
 
     ?logic_less_priority : logic_high_priority
-                        | logic_less_priority OR logic_high_priority -> or
+                        | logic_less_priority "||" logic_high_priority -> or
     
     ?logic_high_priority : clause
-                        | logic_high_priority AND clause -> and
+                        | logic_high_priority "&&" clause -> and
     
     ?clause  : arith_less_priority
-            | arith_less_priority EQUAL arith_less_priority -> equal
-            | arith_less_priority NOT_EQUAL arith_less_priority -> not_equal
-            | arith_less_priority LT arith_less_priority -> lt
-            | arith_less_priority GT arith_less_priority -> gt
-            | arith_less_priority LTE arith_less_priority -> lte
-            | arith_less_priority GTE arith_less_priority -> gte
+            | arith_less_priority "=" arith_less_priority -> equal
+            | arith_less_priority "!=" arith_less_priority -> not_equal
+            | arith_less_priority "<" arith_less_priority -> lt
+            | arith_less_priority ">" arith_less_priority -> gt
+            | arith_less_priority "<=" arith_less_priority -> lte
+            | arith_less_priority ">=" arith_less_priority -> gte
     
     ?arith_less_priority : arith_high_priority
                         | arith_less_priority "+" arith_high_priority   -> add
@@ -60,10 +60,10 @@ plush_grammar = """
                         | arith_high_priority "/" atom  -> div
                         | arith_high_priority "%" atom  -> mod
     
-    ?atom    : INT       -> int
-            | FLOAT     -> float
-            | BOOLEAN   -> boolean  
-            | NAME      -> var
+    ?atom    : INT       -> int_lit
+            | FLOAT     -> float_lit
+            | BOOLEAN   -> boolean_lit
+            | NAME      -> id
             | STRING    -> string  
             | "-" atom -> unary_minus
             | "!" atom -> not
@@ -72,7 +72,9 @@ plush_grammar = """
             | function_call
 
     ?array_access: NAME "[" expression "]"  
-    ?function_call: NAME "(" (expression ("," expression)*)? ")"   
+    function_call: NAME "(" concrete_params ")"
+    concrete_params: expression ("," expression)*  
+                    |
     
     ?type: "int" -> int_type
         | "float" -> float_type
@@ -81,29 +83,13 @@ plush_grammar = """
         | "boolean" -> boolean_type
         | "[" type "]" -> array_type
     
-    NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
-    IF  : "if"
-    ELSE: "else"
-    WHILE: "while"
-    FUNCTION: "function"
+    NAME: /(?!(true|false))[a-zA-Z_][a-zA-Z0-9_]*/
 
     INT: /[0-9](_*[0-9])*/
     FLOAT: /[0-9]*\.[0-9]+/
     STRING: /\"[^"]*\"/
     BOOLEAN: "true" | "false"
 
-    VAL: "val"
-    VAR: "var"
-    ASSIGN: ":="
-    OR: "||"
-    AND: "&&"
-    EQUAL: "="
-    NOT_EQUAL: "!="
-    LT: "<"
-    LTE: "<="
-    GT: ">"
-    GTE: ">="
-    NEG: "!"
     COMMENT: /\#[^\n]+/x
 
     %import common.NEWLINE
@@ -125,17 +111,21 @@ def parse_plush(program : str):
 if __name__ == "__main__":
     # Example usage:
     program = """
-        function main(var args : [string]){
+        val x: int :=1;
+        function main(val y: int, var z: boolean){
         
-            if 1 < 2 {
-            print("1 < 2");
-            } 
-            else {
-                print("1 >= 2");
-            }
+            var a : int := 1* (3^5 + 2) - 3;
+            a := a || true;
+            sum();
 
-            var a : int := to_int(args[0]);
+            if(1 < 2) {
+                a := 3;
+            } else {
+                a := b[1];
+                b[1] := 3;
+            }
         }
+        function sum();
     """
 
     # file = open("../../plush_testsuite/0_valid/maxRangeSquared.pl","r")
