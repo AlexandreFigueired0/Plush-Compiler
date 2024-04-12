@@ -1,5 +1,8 @@
 from lark import Lark
 
+reserved_keywords_list = ["true","false"]
+reserved_keywords = "|".join(reserved_keywords_list)
+
 plush_grammar = """
     start: (declaration | definition)*
 
@@ -83,12 +86,12 @@ plush_grammar = """
         | "boolean" -> boolean_type
         | "[" type "]" -> array_type
     
-    NAME: /(?!(true|false))[a-zA-Z_][a-zA-Z0-9_]*/
 
-    INT: /[0-9](_*[0-9])*/
-    FLOAT: /[0-9]*\.[0-9]+/
+    INT.1: /[0-9](_*[0-9])*/
+    FLOAT.2: /[0-9]*\.[0-9]+/
     STRING: /\"[^"]*\"/
-    BOOLEAN: "true" | "false"
+    BOOLEAN.3: /true|false/
+    NAME.0: /(?!(true|false))[a-zA-Z_][a-zA-Z0-9_]*/
 
     COMMENT: /\#[^\n]+/x
 
@@ -111,7 +114,7 @@ def parse_plush(program : str):
 if __name__ == "__main__":
     # Example usage:
     program = """
-        val x: int :=1;
+        val x: float := true;
         function main(val y: int, var z: boolean){
         
             var a : int := 1* (3^5 + 2) - 3;
