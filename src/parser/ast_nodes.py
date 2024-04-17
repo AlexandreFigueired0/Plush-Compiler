@@ -9,9 +9,6 @@ class Type(ABC):
 class Expression(ABC):
     pass
 
-@dataclass
-class Statement(ABC):
-    pass
 
 # DECLARATIONS
 
@@ -56,15 +53,11 @@ class VarDefinition:
     expr: Expression
 
 @dataclass
-class Statment(ABC):
-    pass
-
-@dataclass
 class FunctionDefinition:
     name: str
     params: list
     type_: Type
-    block: list[Statment]
+    block: list
 
 @dataclass
 class Assignment:
@@ -76,6 +69,29 @@ class ArrayPositionAssignment:
     name: str
     position: Expression
     expr: Expression
+
+# STATEMENTS
+
+@dataclass
+class If():
+    condition: Expression
+    block: list
+
+@dataclass
+class IfElse():
+    condition: Expression
+    block: list
+    else_block: list
+
+@dataclass
+class While():
+    condition: Expression
+    block: list
+
+@dataclass
+class FunctionCall():
+    name: str
+    args: list
 
 # EXPRESSIONS
 

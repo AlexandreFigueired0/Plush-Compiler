@@ -32,18 +32,18 @@ plush_grammar = f"""
 
     block: "{{" ( var_declaration | var_declaration | val_definition | var_definition | assignment | array_position_assignment | statement | (function_call ";") )* "}}"
 
-    ?statement  : "if"  expression block -> if
+    ?statement  : "if"  expression block -> if_
                 | "if"  expression block "else" block -> if_else
-                | "while" expression block -> while
+                | "while" expression block -> while_
                 
     
     ?expression  : logic_less_priority
 
     ?logic_less_priority : logic_high_priority
-                        | logic_less_priority "||" logic_high_priority -> or
+                        | logic_less_priority "||" logic_high_priority -> or_
     
     ?logic_high_priority : clause
-                        | logic_high_priority "&&" clause -> and
+                        | logic_high_priority "&&" clause -> and_
     
     ?clause  : arith_less_priority
             | arith_less_priority "=" arith_less_priority -> equal
@@ -88,11 +88,11 @@ plush_grammar = f"""
         | "[" type "]" -> array_type
     
 
-    NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
     INT.1: /[0-9](_*[0-9])*/
     FLOAT.2: /[0-9]*\.[0-9]+/
+    BOOLEAN.3: /true|false/
     STRING: /\"[^"]*\"/
-    BOOLEAN: /true|false/
+    NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
 
     COMMENT: /\#[^\n]+/x
 
@@ -105,6 +105,7 @@ plush_grammar = f"""
 
 
 parser = Lark(plush_grammar,parser="lalr", transformer=PlushTree())
+# parser = Lark(plush_grammar,parser="lalr")
 
 
 
@@ -126,4 +127,4 @@ if __name__ == "__main__":
     tree = parse_plush(program)
     for node in tree:
         print(node)
-    # print(tree)
+    # print(tree.pretty())

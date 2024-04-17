@@ -53,6 +53,23 @@ class PlushTree(Transformer):
     def block(self, *statements):
         return list(statements)
 
+    # STATEMENTS
+
+    def if_(self, condition, block):
+        return If(condition, block)
+
+    def if_else(self, condition, block, else_block):
+        return IfElse(condition, block, else_block)
+    
+    def while_(self, condition, block):
+        return While(condition, block)
+    
+    def concrete_params(self, *params):
+        return list(params)
+
+    def function_call(self, name, args):
+        return FunctionCall(name, args)
+
     # TOKENS
 
     def NAME(self, token):
