@@ -178,3 +178,33 @@ class PlushTree(Transformer):
     
     def array_type(self, type_):
         return ArrayType(type_)
+    
+def tree_to_string(tree, indent=0):
+    tab = ' '*indent*4
+    tab2 = ' '*indent*6
+    match tree:
+        case Start(defs_or_decls):
+            return "start\n"+ "\n".join(map(lambda x : tree_to_string(x,indent+1), defs_or_decls))
+        case ValDeclaration(name, type_):
+            return f"{tab}val_decl\n{tab2}{name}\n{tab2}{type_}"
+        case VarDeclaration(name, type_):
+            return f"{tab}var_decl\n{tab2}{name}\n{tab2}{type_}"
+        case FunctionDeclaration(name, params, type_):
+            return f"{tab}func_decl\n{tab2}{name}\n{tab2}params\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), params)) + f"\n{tab2}{type_}"
+        case ValParam(name, type_):
+            return f"{tab}val_param\n{tab2}{name}\n{tab2}{type_}"
+        case VarParam(name, type_):
+            return f"{tab}var_param\n{tab2}{name}\n{tab2}{type_}"
+        case ValDefinition(name, type_, expr):
+            return f"{tab}val_def\n{tab2}{name}\n{tab2}{type_}\n{tree_to_string(expr,indent)}"
+        case VarDefinition(name, type_, expr):
+            return f"{tab}var_def\n{tab2}{name}\n{tab2}{type_}\n{tree_to_string(expr,indent)}"
+        case Assignment(name, expr):
+            return f"{tab}assign\n{tab2}{name}\n{tree_to_string(expr,indent)}"
+        case FunctionDefinition(name, params, type_, block):
+            return f"{tab}func_def\n{tab2}{name}\n{tab2}params\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), params)) +\
+                f"\n{tab2}{type_}\n{tab2}block\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), block))
+        
+        #TODO: tab duvidoso
+        case IntLit(value):
+            return f"{tab2}int_lit{tab}{value}"

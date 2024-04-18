@@ -175,7 +175,9 @@ def type_check(ctx : Context, node) -> bool:
             pass
 
         case FunctionDeclaration(name, params, type_):
-            pass
+            if ctx.has_var(name):
+                raise TypeError(f"Function {name} already declared")
+            ctx.set_type(name, type_)
 
         case FunctionDefinition(name, params, type_, block):
             pass

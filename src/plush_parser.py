@@ -1,5 +1,5 @@
 from lark import Lark
-from tree_transformer import PlushTree
+from tree_transformer import PlushTree, tree_to_string
 
 
 
@@ -117,12 +117,10 @@ if __name__ == "__main__":
     # Example usage:
     program = """
         val x : int;
-        val a : [[int]];
-        x :=  1 * (1 +1);
     """
 
-    # file = open("my_program.pl","r")
-    # program = file.read()
+    file = open("my_program.pl","r")
+    program = file.read()
     tree = parse_plush(program)
-    print(tree)
     # print(tree.pretty())
+    print(tree_to_string(tree))
