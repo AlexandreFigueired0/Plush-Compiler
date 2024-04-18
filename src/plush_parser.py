@@ -116,10 +116,9 @@ def parse_plush(program : str):
 if __name__ == "__main__":
     # Example usage:
     program = """
-        function foo(val x: int, var y: float): int{
-            a[0][0] := 1;
-            x := a[0][0];
-        }
+        val x : int;
+        val a : [[int]];
+        x :=  1 * (1 +1);
     """
 
     # file = open("my_program.pl","r")

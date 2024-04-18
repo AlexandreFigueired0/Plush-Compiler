@@ -101,7 +101,7 @@ def type_check(ctx : Context, node) -> bool:
                 raise TypeError(f"Type mismatch in {node}, both operands must be both of type int or float but found {wrong_type}")
 
             if left_type != right_type:
-                raise TypeError(f"Type mismatch in {node}, oth operands must be both of type int or float but found {left_type} and {right_type}")
+                raise TypeError(f"Type mismatch in {node}, both operands must be both of type int or float but found {left_type} and {right_type}")
 
             return left_type
         
@@ -149,6 +149,36 @@ def type_check(ctx : Context, node) -> bool:
             # TODO: Access array, so return the type of the elem accessed
             return res_type
 
+        case If(condition, block):
+            condition_type = type_check(ctx, condition)
+            if condition_type != BooleanType():
+                raise TypeError(f"Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+            type_check(ctx, block)
+        
+        case IfElse(condition, block, else_block):
+            condition_type = type_check(ctx, condition)
+            if condition_type != BooleanType():
+                raise TypeError(f"Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+            type_check(ctx, block)
+            type_check(ctx, else_block)
+        
+        case While(condition, block):
+            condition_type = type_check(ctx, condition)
+            if condition_type != BooleanType():
+                raise TypeError(f"Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+            type_check(ctx, block)
+        
+        #TODO: Check if the function exists
+        #TODO: Check if the arguments are correct
+        #TODO: Check if the return type is correct
+        case FunctionCall(name, args):
+            pass
+
+        case FunctionDeclaration(name, params, type_):
+            pass
+
+        case FunctionDefinition(name, params, type_, block):
+            pass
 
         case Id(name):
             return ctx.get_type(name)
