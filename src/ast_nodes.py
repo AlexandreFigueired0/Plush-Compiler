@@ -9,6 +9,11 @@ class Type(ABC):
 class Expression(ABC):
     pass
 
+# START
+
+@dataclass
+class Start:
+    defs_or_decls: list
 
 # DECLARATIONS
 
@@ -67,7 +72,7 @@ class Assignment:
 @dataclass
 class ArrayPositionAssignment:
     name: str
-    position: Expression
+    indexes: list[Expression]
     expr: Expression
 
 # STATEMENTS
@@ -176,7 +181,7 @@ class LogicNot(Expression):
 @dataclass
 class ArrayAccess(Expression):
     name: str
-    position: Expression
+    indexes: list[Expression]
 
 @dataclass
 class Id(Expression):
@@ -202,24 +207,37 @@ class String(Expression):
 
 @dataclass
 class IntType(Type):
-    pass
+    def __str__(self):
+        return "int"
 
 @dataclass
 class FloatType(Type):
-    pass
+    def __str__(self):
+        return "float"
 
 @dataclass
 class DoubleType(Type):
-    pass
+    def __str__(self):
+        return "double"
 
 @dataclass
 class StringType(Type):
-    pass
+    def __str__(self):
+        return "string"
+
+@dataclass
+class CharType(Type):
+    def __str__(self):
+        return "char"
 
 @dataclass
 class BooleanType(Type):
-    pass
+    def __str__(self):
+        return "boolean"
 
 @dataclass
 class ArrayType(Type):
     type_: Type
+
+    def __str__(self):
+        return f"array of {self.type_}"

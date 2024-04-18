@@ -1,7 +1,7 @@
-from my_parser import parse_plush
-from dataclasses import dataclass
-from lark import Tree, Token
 
+from ast_nodes import *
+from tree_transformer import PlushTree
+from plush_parser import parse_plush
 
 
 class Context():
@@ -33,33 +33,30 @@ class Context():
     def exit_block(self):
         self.stack.pop()
 
-def type_check(ctx : Context, node: Tree) -> bool:
-    match node.data:
-        case "start":
-            for child in node.children:
-                type_check(ctx, child)
-        case "val_declaration" | "var_declaration":
-            name, type_tree = node.children
-            type_ = type_tree.data.replace("_type", "")
+def type_check(ctx : Context, node) -> bool:
+    match node:
+        case Start(defs_or_decls):
+            for def_or_decl in defs_or_decls:
+                type_check(ctx, def_or_decl)
+        case ValDeclaration(name, type_) | VarDeclaration(name, type_):
             #TODO: Check if variable is already declared
             #TODO: Is this ok even if the prev ctx has this name
             if ctx.has_var_in_current_scope(name):
                 raise TypeError(f"Variable {name} already declared")
 
             ctx.set_type(name, type_)
-        case "val_definition" | "var_definition":
-            name, type_tree, expr = node.children
-            type_ = type_tree.data.replace("_type", "")
+        case ValDefinition(name, type_, expr) | VarDefinition(name, type_, expr):
 
+            # TODO: Check if variable is already declared
             if ctx.has_var_in_current_scope(name):
                 raise TypeError(f"Variable {name} already declared")
             
             expr_type = type_check(ctx, expr)
-            if type_ != expr_type:
+            #TODO: floats can be assigned with ints?
+            if type_ != expr_type :
                 raise TypeError(f"Type mismatch for variable {name}, expected {type_} but got {expr_type}")
             ctx.set_type(name, type_)
-        case "assignment":
-            name, expr = node.children
+        case Assignment(name, expr):
             #TODO: Check if variable is already declared
             if not ctx.has_var(name):
                 raise TypeError(f"Variable {name} doesn't exist")
@@ -69,44 +66,111 @@ def type_check(ctx : Context, node: Tree) -> bool:
             if var_type != expr_type:
                 raise TypeError(f"Type mismatch for variable {name}, expected {var_type} but got {expr_type}")
             
-
-        # TODO: como e que é para estas ops entre ints e floats?
-        # TODO: comparaçao de grandeza entre strings?
-        case "add" | "sub" | "mul" | "div" | "power" | "lt" | "gt" | "lte" | "gte":
-            left_tree, right_tree = node.children
-            left_type = type_check(ctx, left_tree)
-            right_type = type_check(ctx, right_tree)
-
-            #TODO: como aprsentar este erro
-            if (left_type == "int" or left_type == "float") and (right_type == "int" or right_type == "float"):
-                return "float" if "float" in [left_type, right_type] else "int"
+        case ArrayPositionAssignment(name, indexes, expr):
+            if not ctx.has_var(name):
+                raise TypeError(f"Variable {name} doesn't exist")
             
-            wrong_type = left_type if left_type != "int" and left_type != "float" else right_type
-            raise TypeError(f"Type mismatch for {node.data}, expected ints or floats but found a {wrong_type}")
+            var_type = ctx.get_type(name)
+
+            
+            #TODO: Check if the indexes are valid and go deeper in the type
+            res_type = var_type
+            for index in indexes:
+                index_type = type_check(ctx, index)
+                if index_type != IntType():
+                    raise TypeError(f"Type mismatch in {node}, index must be of type int but found {index_type}")
                 
-        case "id":
-            name = node.children[0]
-            return ctx.get_type(name)
-        case "int_lit":
-            return "int"
-        case "boolean_lit":
-            return "boolean"
-        case "float_lit":
-            return "float"
-        case "string":
-            return "string"
-        case _:
-            raise TypeError(f"Unknown node type {node.data}")
-            
-            
+                if not isinstance(res_type, ArrayType):
+                    raise TypeError(f"Type mismatch in {node}, expected array but got {res_type}")
 
+                res_type = res_type.type_
             
+            expr_type = type_check(ctx, expr)
+            if res_type != expr_type:
+                raise TypeError(f"Type mismatch in {node}, expected {res_type} but got {expr_type}")
+
+        case Sub(left, right) | Mul(left, right) | Div(left, right) | Mod(left, right) | Power(left, right) | \
+                Add(left, right):
+        
+            left_type = type_check(ctx, left)
+            right_type = type_check(ctx, right)
+
+            wrong_type = left_type if left_type not in [IntType(), FloatType()] else right_type
+            #TODO: Como mostrar estes erros? eu nao sei se eh para ser float ou int
+            if wrong_type not in [IntType(), FloatType()]:
+                raise TypeError(f"Type mismatch in {node}, both operands must be both of type int or float but found {wrong_type}")
+
+            if left_type != right_type:
+                raise TypeError(f"Type mismatch in {node}, oth operands must be both of type int or float but found {left_type} and {right_type}")
+
+            return left_type
+        
+        case Or(left, right) | And(left, right) | Equal(left, right) | NotEqual(left, right) | GreaterThan(left, right) | \
+              GreaterThanOrEqual(left, right) | LessThan(left, right) | LessThanOrEqual(left, right):
+            
+            left_type = type_check(ctx, left)
+            right_type = type_check(ctx, right)
+
+            wrong_type = left_type if left_type != BooleanType() else right_type
+            if wrong_type != BooleanType():
+                raise TypeError(f"Type mismatch in {node}, both operands must be of type boolean but found {wrong_type}")
+            
+            return BooleanType()
+        
+        case UnaryMinus(expr):
+            expr_type = type_check(ctx, expr)
+            if expr_type not in [IntType(), FloatType()]:
+                raise TypeError(f"Type mismatch in {node}, operand must be a number but found {expr_type}")
+            return expr_type
+        
+        case LogicNot(expr):
+            expr_type = type_check(ctx, expr)
+            if expr_type != BooleanType():
+                raise TypeError(f"Type mismatch in {node}, operand must be of type boolean but found {expr_type}")
+            return BooleanType()
+        
+        case ArrayAccess(name, indexes):
+            if not ctx.has_var(name):
+                raise TypeError(f"Variable {name} doesn't exist")
+            
+            var_type = ctx.get_type(name)
+            
+            #TODO: Check if the indexes are valid and go deeper in the type
+            res_type = var_type
+            for index in indexes:
+                index_type = type_check(ctx, index)
+                if index_type != IntType():
+                    raise TypeError(f"Type mismatch in {node}, index must be of type int but found {index_type}")
+                
+                if not isinstance(res_type, ArrayType):
+                    raise TypeError(f"Type mismatch in {node}, expected array but got {res_type}")
+                res_type = res_type.type_
+                
+            # TODO: Access array, so return the type of the elem accessed
+            return res_type
+
+
+        case Id(name):
+            return ctx.get_type(name)
+        case IntLit(value):
+            return IntType()
+        case BooleanLit(value):
+            return BooleanType()
+        case FloatLit(value):
+            return FloatType()
+        case String(value):
+            return StringType()
+        case _:
+            raise TypeError(f"Unknown node type {node}")
+
+
 if __name__ == "__main__":
     program = """
-        val y: boolean := true;
-        x := 1;
+        val y: int := 1 + (1* true);
     """
+    file = open("my_program.pl","r")
+    program = file.read()
     # Example usage
     program_ast = parse_plush(program)
-    print(program_ast.pretty())
+    # print(program_ast.pretty())
     type_check(Context(), program_ast)

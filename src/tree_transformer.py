@@ -5,7 +5,7 @@ from ast_nodes import *
 class PlushTree(Transformer):
 
     def start(self, *defs_or_decls):
-        return list(defs_or_decls)
+        return Start(defs_or_decls)
 
     # DECLARATIONS
 
@@ -47,8 +47,10 @@ class PlushTree(Transformer):
     def assignment(self, name, expr):
         return Assignment(name, expr)
     
-    def array_position_assignment(self, name, position, expr):
-        return ArrayPositionAssignment(name, position, expr)
+    def array_position_assignment(self, name, *index_and_expr):
+        indexes = index_and_expr[:-1]
+        expr = index_and_expr[-1]
+        return ArrayPositionAssignment(name, indexes, expr)
     
     def block(self, *statements):
         return list(statements)
@@ -136,8 +138,8 @@ class PlushTree(Transformer):
     def not_(self, expr):
         return LogicNot(expr)
     
-    def array_access(self, name, position):
-        return ArrayAccess(name, position)
+    def array_access(self, name, *indexes):
+        return ArrayAccess(name, indexes)
 
     def id(self, name):
         return Id(name)
@@ -167,6 +169,9 @@ class PlushTree(Transformer):
     
     def string_type(self):
         return StringType()
+    
+    def char_type(self):
+        return CharType()
     
     def boolean_type(self):
         return BooleanType()
