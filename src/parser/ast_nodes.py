@@ -96,6 +96,89 @@ class FunctionCall():
 # EXPRESSIONS
 
 @dataclass
+class Or(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class And(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class Equal(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class NotEqual(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class LessThan(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class GreaterThan(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class LessThanOrEqual(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class GreaterThanOrEqual(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class Add(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class Sub(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class Power(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class Mul(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class Div(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class Mod(Expression):
+    left: Expression
+    right: Expression
+
+@dataclass
+class UnaryMinus(Expression):
+    expr: Expression
+
+@dataclass
+class LogicNot(Expression):
+    expr: Expression
+
+@dataclass
+class ArrayAccess(Expression):
+    name: str
+    position: Expression
+
+@dataclass
 class Id(Expression):
     name: str
 

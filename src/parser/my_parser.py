@@ -69,7 +69,7 @@ plush_grammar = f"""
             | NAME      -> id
             | STRING    -> string  
             | "-" atom -> unary_minus
-            | "!" atom -> not
+            | "!" atom -> not_
             | "(" logic_less_priority ")"     
             | array_access 
             | function_call

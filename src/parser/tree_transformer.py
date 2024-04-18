@@ -88,6 +88,56 @@ class PlushTree(Transformer):
         return str(token)
     
     # EXPRESSIONS
+    def or_(self, left, right):
+        return Or(left, right)
+    
+    def and_(self, left, right):
+        return And(left, right)
+    
+    def equal(self, left, right):
+        return Equal(left, right)
+    
+    def not_equal(self, left, right):
+        return NotEqual(left, right)
+    
+    def lt(self, left, right):
+        return LessThan(left, right)
+    
+    def gt(self, left, right):
+        return GreaterThan(left, right)
+    
+    def lte(self, left, right):
+        return LessThanOrEqual(left, right)
+    
+    def gte(self, left, right):
+        return GreaterThanOrEqual(left, right)
+    
+    def add(self, left, right):
+        return Add(left, right)
+    
+    def sub(self, left, right):
+        return Sub(left, right)
+    
+    def power(self, left, right):
+        return Power(left, right)
+    
+    def mul(self, left, right):
+        return Mul(left, right)
+    
+    def div(self, left, right):
+        return Div(left, right)
+    
+    def mod(self, left, right):
+        return Mod(left, right)
+    
+    def unary_minus(self, expr):
+        return UnaryMinus(expr)
+    
+    def not_(self, expr):
+        return LogicNot(expr)
+    
+    def array_access(self, name, position):
+        return ArrayAccess(name, position)
 
     def id(self, name):
         return Id(name)
