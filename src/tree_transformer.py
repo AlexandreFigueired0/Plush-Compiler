@@ -180,8 +180,8 @@ class PlushTree(Transformer):
         return ArrayType(type_)
     
 def tree_to_string(tree, indent=0):
-    tab = ' '*indent*4
-    tab2 = ' '*indent*6
+    tab = ' '*indent*3
+    tab2 = ' '*indent*5
     match tree:
         case Start(defs_or_decls):
             return "start\n"+ "\n".join(map(lambda x : tree_to_string(x,indent+1), defs_or_decls))
@@ -202,9 +202,63 @@ def tree_to_string(tree, indent=0):
         case Assignment(name, expr):
             return f"{tab}assign\n{tab2}{name}\n{tree_to_string(expr,indent)}"
         case FunctionDefinition(name, params, type_, block):
-            return f"{tab}func_def\n{tab2}{name}\n{tab2}params\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), params)) +\
-                f"\n{tab2}{type_}\n{tab2}block\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), block))
-        
+            params = "\n".join(map(lambda x : tree_to_string(x,indent+1), params)) if params else ""
+            return f"{tab}func_def\n{tab2}{name}\n{tab2}params\n" + params +\
+                f"\n{tab2}{type_ if type_ else ""}\n{tab2}block\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), block))
+        case ArrayPositionAssignment(name, indexes, expr):
+            return f"{tab}array_pos_assign\n{tab2}{name}\n{tab2}indexes\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), indexes)) + f"\n{tree_to_string(expr,indent)}"
+        case If(condition, block):
+            return f"{tab}if\n{tab2}{condition}\n{tab2}block\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), block))
+        case IfElse(condition, block, else_block):
+            return f"{tab}if_else\n{tab2}{condition}\n{tab2}block\n" + "\n".join(map(lambda x : tree_to_string(x,indent+2), block)) + f"\n{tab2}else_block\n" + "\n".join(map(lambda x : tree_to_string(x,indent+2), else_block))
+        case While(condition, block):
+            return f"{tab}while\n{tab2}{condition}\n{tab2}block\n" + "\n".join(map(lambda x : tree_to_string(x,indent+2), block))
+        case FunctionCall(name, args):
+            return f"{tab}func_call\n{tab2}{name}\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), args))
+        case ArrayAccess(name, indexes):
+            return f"{tab}array_access\n{tab2}{name}\n{tab2}indexes\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), indexes))
+        case Or(left, right):
+            return f"{tab}or\n{tab2}{left}\n{tab2}{right}"
+        case And(left, right):
+            return f"{tab}and\n{tab2}{left}\n{tab2}{right}"
+        case Equal(left, right):
+            return f"{tab}equal\n{tab2}{left}\n{tab2}{right}"
+        case NotEqual(left, right):
+            return f"{tab}not_equal\n{tab2}{left}\n{tab2}{right}"
+        case GreaterThan(left, right):
+            return f"{tab}gt\n{tab2}{left}\n{tab2}{right}"
+        case GreaterThanOrEqual(left, right):
+            return f"{tab}gte\n{tab2}{left}\n{tab2}{right}"
+        case LessThan(left, right):
+            return f"{tab}lt\n{tab2}{left}\n{tab2}{right}"
+        case LessThanOrEqual(left, right):
+            return f"{tab}lte\n{tab2}{left}\n{tab2}{right}"
+        case Add(left, right):
+            return f"{tab}add\n{tab2}{left}\n{tab2}{right}"
+        case Sub(left, right):
+            return f"{tab}sub\n{tab2}{left}\n{tab2}{right}"
+        case Power(left, right):
+            return f"{tab}power\n{tab2}{left}\n{tab2}{right}"
+        case Mul(left, right):
+            return f"{tab}mul\n{tab2}{left}\n{tab2}{right}"
+        case Div(left, right):
+            return f"{tab}div\n{tab2}{left}\n{tab2}{right}"
+        case Mod(left, right):
+            return f"{tab}mod\n{tab2}{left}\n{tab2}{right}"
+        case UnaryMinus(expr):
+            return f"{tab}unary_minus\n{tab2}{expr}"
+        case LogicNot(expr):
+            return f"{tab}not\n{tab2}{expr}"
+        case Id(name):
+            return f"{tab2}id{tab}{name}"
         #TODO: tab duvidoso
         case IntLit(value):
             return f"{tab2}int_lit{tab}{value}"
+        case FloatLit(value):
+            return f"{tab2}float_lit{tab}{value}"
+        case BooleanLit(value):
+            return f"{tab2}bool_lit{tab}{value}"
+        case String(value):
+            return f"{tab2}string{tab}{value}"
+        case _:
+            return f"{tab}unknown{tab}{tree}"
