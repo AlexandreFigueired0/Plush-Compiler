@@ -153,34 +153,86 @@ def type_check(ctx : Context, node) -> bool:
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
                 raise TypeError(f"Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+            
+            #TODO: entr block?
+            ctx.enter_block()
             type_check(ctx, block)
-        
+            ctx.exit_block()
+
         case IfElse(condition, block, else_block):
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
                 raise TypeError(f"Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+            
+            #TODO: entr block?
+            ctx.enter_block()
             type_check(ctx, block)
+            ctx.exit_block()
+
+            ctx.enter_block()
             type_check(ctx, else_block)
+            ctx.exit_block()
         
         case While(condition, block):
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
                 raise TypeError(f"Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+            
+            #TODO: entr block?
+            ctx.enter_block()
             type_check(ctx, block)
+            ctx.exit_block()
         
         #TODO: Check if the function exists
         #TODO: Check if the arguments are correct
         #TODO: Check if the return type is correct
-        case FunctionCall(name, args):
-            pass
+        case FunctionCall(name, given_args):
+            if not ctx.has_var(name):
+                raise TypeError(f"Function {name} doesn't exist")
+            
+            f_context = ctx.get_type(name)
+
+            #TODO: Check if this name is a function
+            if not isinstance(f_context, tuple):
+                raise TypeError(f"Function {name} is not callable")
+            
+            name, params, type_ = f_context
+            # TODO: Check if the number of arguments is correct
+            if len(params) != len(given_args):
+                raise TypeError(f"Function {name} expects {len(params)} arguments but got {len(given_args)}")
+            
+            for i, arg in enumerate(given_args):
+                arg_type = type_check(ctx, arg)
+                if arg_type != params[i][1]:
+                    raise TypeError(f"Type mismatch in {node}, expected {f_context[1][i][1]} but got {arg_type}")
+            
+            return f_context[2]
 
         case FunctionDeclaration(name, params, type_):
             if ctx.has_var(name):
                 raise TypeError(f"Function {name} already declared")
-            ctx.set_type(name, type_)
+            
+            f_context = (name,[],type_)
+            for p in params:
+                f_context[1].append((p.name,p.type_))
+            ctx.set_type(name, f_context)
 
         case FunctionDefinition(name, params, type_, block):
-            pass
+            f_context = (name,[],type_)
+
+            ctx.enter_block()
+            for p in params:
+                ctx.set_type(p.name,p.type_)
+                f_context[1].append((p.name,p.type_))
+
+            # TODO: Check if the return type is correct
+            ctx.set_type(name, type_)
+
+            for statement in block:
+                type_check(ctx, statement)
+            ctx.exit_block()
+
+            ctx.set_type(name, f_context)
 
         case Id(name):
             return ctx.get_type(name)
