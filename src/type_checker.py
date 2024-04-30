@@ -202,7 +202,7 @@ def type_check(ctx : Context, node) -> bool:
             
             for i, arg in enumerate(given_args):
                 arg_type = type_check(ctx, arg)
-                if arg_type != params[i][1]:
+                if arg_type != params[i].type_:
                     raise TypeError(f"Type mismatch in {node}, expected {f_context[1][i][1]} but got {arg_type}")
             
             return f_context[2]
@@ -213,21 +213,35 @@ def type_check(ctx : Context, node) -> bool:
             
             f_context = (name,[],type_)
             for p in params:
-                f_context[1].append((p.name,p.type_))
+                f_context[1].append(p)
             ctx.set_type(name, f_context)
 
         case FunctionDefinition(name, params, type_, block):
-            f_context = (name,[],type_)
+            f_context = (name,params,type_)
 
+            # Function already defined
             if ctx.has_var(name) and ctx.get_type(name)[1] == False:
-                raise TypeError(f"Function {name} already declared")
+                raise TypeError(f"Function {name} already defiend")
+            # Function declared, but not defined
+            # TODO: Check if the arguments are correct, type and modifiers
+            elif ctx.has_var(name) and ctx.get_type(name)[1] == True:
+                f_declared,_ = ctx.get_type(name)
+
+                if len(f_declared[1]) != len(params):
+                    raise TypeError(f"Function {name} expects {len(f_declared[1])} arguments but got {len(params)}")
+                
+                for i, p in enumerate(params):
+                    if p.type_ != f_declared[1][i].type_:
+                        raise TypeError(f"Type mismatch in {node}, expected {f_declared[1][i].type_} but got {p.type_}")
+                    
+                    if type(p) != type(f_declared[1][i]):
+                        raise TypeError(f"Type mismatch in {node}, expected {type(f_declared[1][i])} but got {type(p)}")
 
             ctx.enter_block()
 
-            # TODO: match for val/var params
+            # TODO: inject params into the context, with according types and flag can_define
             for p in params:
-                ctx.set_type(p.name,p.type_)
-                f_context[1].append((p.name,p.type_))
+                ctx.set_type(p.name,p.type_, isinstance(p, VarParam))
 
             # TODO: Check if the return type is correct
             ctx.set_type(name, type_)
