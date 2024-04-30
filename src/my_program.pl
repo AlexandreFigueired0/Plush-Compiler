@@ -1,11 +1,11 @@
-function foo (var x :int, val y :int): int {
-    foo := x+y;
+function get_array(): [int];
+
+function foo (var x :[int]): int {
+
+    foo:=1;
 }
 
 function main() {
-    var a :int;
-    var b :int;
-    a := 1;
-    b := 2;
-    var c :int := foo("ola", b);
+    var a :[int] := get_array();
+    var c :int := a[foo(a)];
 }

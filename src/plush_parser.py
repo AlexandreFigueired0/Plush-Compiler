@@ -4,11 +4,9 @@ from tree_transformer import PlushTree, tree_to_string
 
 
 plush_grammar = f"""
-    start: (declaration | definition)*
+    start: (function_declaration | definition)*
 
-    ?declaration: val_declaration
-                | var_declaration
-                | "function" NAME "(" params ")" (":" type)? ";" -> function_declaration
+    ?function_declaration: "function" NAME "(" params ")" (":" type)? ";" -> function_declaration
     
     ?definition : val_definition
                 | var_definition
@@ -22,15 +20,12 @@ plush_grammar = f"""
     ?val_definition  : "val" NAME ":" type ":=" expression ";"
     ?var_definition  : "var" NAME ":" type  ":=" expression ";"
     
-    ?val_declaration: "val" NAME ":" type ";" 
-    ?var_declaration: "var" NAME ":" type  ";"
-    
     params: param ("," param)*
             |
     param  : "val" NAME ":" type  -> val_param
             | "var" NAME ":" type  -> var_param
 
-    block: "{{" ( var_declaration | var_declaration | val_definition | var_definition | assignment | array_position_assignment | statement | (function_call ";") )* "}}"
+    block: "{{" ( val_definition | var_definition | assignment | array_position_assignment | statement | (function_call ";") )* "}}"
 
     ?statement  : "if"  expression block -> if_
                 | "if"  expression block "else" block -> if_else

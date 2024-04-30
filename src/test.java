@@ -5,6 +5,8 @@ public class test {
         System.out.println("Hello World");
         b = 30;
         int[] a = new int[10];
+
+        int main = 5;
     }
 
     static int b = 20;

@@ -221,6 +221,8 @@ def type_check(ctx : Context, node) -> bool:
             f_context = (name,[],type_)
 
             ctx.enter_block()
+
+            # TODO: match for val/var params
             for p in params:
                 ctx.set_type(p.name,p.type_)
                 f_context[1].append((p.name,p.type_))
