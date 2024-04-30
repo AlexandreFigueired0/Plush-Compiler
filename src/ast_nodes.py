@@ -19,17 +19,6 @@ class Start:
 # DECLARATIONS
 
 @dataclass
-class ValDeclaration:
-    name: str
-    type_: Type
-
-@dataclass
-class VarDeclaration:
-    name: str
-    type_: Type
-
-
-@dataclass
 class ValParam:
     name: str
     type_: Type

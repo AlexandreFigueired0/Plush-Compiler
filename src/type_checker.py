@@ -14,9 +14,9 @@ class Context():
                 return scope[name]
         raise TypeError(f"Variable {name} doesn't exist")
     
-    def set_type(self, name, value):
-        scope = self.stack[0]
-        scope[name] = value
+    def set_type(self, name, value, can_define=True):
+        scope = self.stack[-1]
+        scope[name] = (value, can_define)
 
     def has_var(self, name):
         for scope in self.stack[::-1]:
@@ -38,13 +38,6 @@ def type_check(ctx : Context, node) -> bool:
         case Start(defs_or_decls):
             for def_or_decl in defs_or_decls:
                 type_check(ctx, def_or_decl)
-        case ValDeclaration(name, type_) | VarDeclaration(name, type_):
-            #TODO: Check if variable is already declared
-            #TODO: Is this ok even if the prev ctx has this name
-            if ctx.has_var_in_current_scope(name):
-                raise TypeError(f"Variable {name} already declared")
-
-            ctx.set_type(name, type_)
         case ValDefinition(name, type_, expr) | VarDefinition(name, type_, expr):
 
             # TODO: Check if variable is already declared
@@ -55,13 +48,19 @@ def type_check(ctx : Context, node) -> bool:
             #TODO: floats can be assigned with ints?
             if type_ != expr_type :
                 raise TypeError(f"Type mismatch for variable {name}, expected {type_} but got {expr_type}")
-            ctx.set_type(name, type_)
+            
+            # If its a val, then cant be redefined
+            ctx.set_type(name, type_, not isinstance(node, ValDefinition))
         case Assignment(name, expr):
             #TODO: Check if variable is already declared
             if not ctx.has_var(name):
                 raise TypeError(f"Variable {name} doesn't exist")
             
-            var_type = ctx.get_type(name)
+            var_type,can_define = ctx.get_type(name)
+
+            if not can_define:
+                raise TypeError(f"Variable {name} is immutable")
+
             expr_type = type_check(ctx, expr)
             if var_type != expr_type:
                 raise TypeError(f"Type mismatch for variable {name}, expected {var_type} but got {expr_type}")
@@ -70,7 +69,7 @@ def type_check(ctx : Context, node) -> bool:
             if not ctx.has_var(name):
                 raise TypeError(f"Variable {name} doesn't exist")
             
-            var_type = ctx.get_type(name)
+            var_type, _ = ctx.get_type(name)
 
             
             #TODO: Check if the indexes are valid and go deeper in the type
@@ -133,7 +132,7 @@ def type_check(ctx : Context, node) -> bool:
             if not ctx.has_var(name):
                 raise TypeError(f"Variable {name} doesn't exist")
             
-            var_type = ctx.get_type(name)
+            var_type,_ = ctx.get_type(name)
             
             #TODO: Check if the indexes are valid and go deeper in the type
             res_type = var_type
@@ -190,7 +189,7 @@ def type_check(ctx : Context, node) -> bool:
             if not ctx.has_var(name):
                 raise TypeError(f"Function {name} doesn't exist")
             
-            f_context = ctx.get_type(name)
+            f_context,_ = ctx.get_type(name)
 
             #TODO: Check if this name is a function
             if not isinstance(f_context, tuple):
@@ -220,6 +219,9 @@ def type_check(ctx : Context, node) -> bool:
         case FunctionDefinition(name, params, type_, block):
             f_context = (name,[],type_)
 
+            if ctx.has_var(name) and ctx.get_type(name)[1] == False:
+                raise TypeError(f"Function {name} already declared")
+
             ctx.enter_block()
 
             # TODO: match for val/var params
@@ -234,10 +236,10 @@ def type_check(ctx : Context, node) -> bool:
                 type_check(ctx, statement)
             ctx.exit_block()
 
-            ctx.set_type(name, f_context)
+            ctx.set_type(name, f_context, False)
 
         case Id(name):
-            return ctx.get_type(name)
+            return ctx.get_type(name)[0]
         case IntLit(value):
             return IntType()
         case BooleanLit(value):

@@ -9,12 +9,6 @@ class PlushTree(Transformer):
 
     # DECLARATIONS
 
-    def val_declaration(self, name, type_):
-        return ValDeclaration(name, type_)
-    
-    def var_declaration(self, name, type_):
-        return VarDeclaration(name, type_)
-    
     def function_declaration(self, name, params, type_ = None):
         return FunctionDeclaration(name, params, type_)
     
@@ -185,10 +179,6 @@ def tree_to_string(tree, indent=0):
     match tree:
         case Start(defs_or_decls):
             return "start\n"+ "\n".join(map(lambda x : tree_to_string(x,indent+1), defs_or_decls))
-        case ValDeclaration(name, type_):
-            return f"{tab}val_decl\n{tab2}{name}\n{tab2}{type_}"
-        case VarDeclaration(name, type_):
-            return f"{tab}var_decl\n{tab2}{name}\n{tab2}{type_}"
         case FunctionDeclaration(name, params, type_):
             return f"{tab}func_decl\n{tab2}{name}\n{tab2}params\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), params)) + f"\n{tab2}{type_}"
         case ValParam(name, type_):
