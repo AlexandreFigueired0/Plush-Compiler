@@ -133,6 +133,8 @@ class PlushTree(Transformer):
         return LogicNot(expr)
     
     def array_access(self, name, *indexes):
+        if isinstance(name, FunctionCall):
+            name = name.name
         return ArrayAccess(name, indexes)
 
     def id(self, name):
@@ -146,6 +148,9 @@ class PlushTree(Transformer):
     
     def boolean_lit(self, value):
         return BooleanLit(value)
+    
+    def char_lit(self, value):
+        return CharLit(value)
     
     def string(self, value):
         return String(value)
@@ -248,6 +253,8 @@ def tree_to_string(tree, indent=0):
             return f"{tab2}float_lit{tab}{value}"
         case BooleanLit(value):
             return f"{tab2}bool_lit{tab}{value}"
+        case CharLit(value):
+            return f"{tab2}char_lit{tab}{value}"
         case String(value):
             return f"{tab2}string{tab}{value}"
         case _:

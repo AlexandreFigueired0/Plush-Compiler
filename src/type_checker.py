@@ -1,6 +1,6 @@
 
 from ast_nodes import *
-from tree_transformer import PlushTree
+from tree_transformer import PlushTree, tree_to_string
 from plush_parser import parse_plush
 
 
@@ -38,6 +38,7 @@ def type_check(ctx : Context, node) -> bool:
         case Start(defs_or_decls):
             for def_or_decl in defs_or_decls:
                 type_check(ctx, def_or_decl)
+            return node
         case ValDefinition(name, type_, expr) | VarDefinition(name, type_, expr):
 
             # TODO: Check if variable is already declared
@@ -97,11 +98,12 @@ def type_check(ctx : Context, node) -> bool:
             wrong_type = left_type if left_type not in [IntType(), FloatType()] else right_type
             #TODO: Como mostrar estes erros? eu nao sei se eh para ser float ou int
             if wrong_type not in [IntType(), FloatType()]:
-                raise TypeError(f"Type mismatch in {node}, both operands must be both of type int or float but found {wrong_type}")
+                raise TypeError(f"Type mismatch in {node}, both operands must be both of numerical type but found {wrong_type}")
 
             if left_type != right_type:
-                raise TypeError(f"Type mismatch in {node}, both operands must be both of type int or float but found {left_type} and {right_type}")
+                raise TypeError(f"Type mismatch in {node}, both operands must be both of the same type but found {left_type} and {right_type}")
 
+            node.type_ = left_type
             return left_type
         
         case Or(left, right) | And(left, right) | Equal(left, right) | NotEqual(left, right) | GreaterThan(left, right) | \
@@ -120,6 +122,8 @@ def type_check(ctx : Context, node) -> bool:
             expr_type = type_check(ctx, expr)
             if expr_type not in [IntType(), FloatType()]:
                 raise TypeError(f"Type mismatch in {node}, operand must be a number but found {expr_type}")
+            
+            node.type_ = expr_type
             return expr_type
         
         case LogicNot(expr):
@@ -133,6 +137,10 @@ def type_check(ctx : Context, node) -> bool:
                 raise TypeError(f"Variable {name} doesn't exist")
             
             var_type,_ = ctx.get_type(name)
+
+            #TODO: check if its a variable or a function call
+            if isinstance(var_type, tuple):
+                var_type = var_type[-1]
             
             #TODO: Check if the indexes are valid and go deeper in the type
             res_type = var_type
@@ -144,8 +152,9 @@ def type_check(ctx : Context, node) -> bool:
                 if not isinstance(res_type, ArrayType):
                     raise TypeError(f"Type mismatch in {node}, expected array but got {res_type}")
                 res_type = res_type.type_
-                
+            
             # TODO: Access array, so return the type of the elem accessed
+            node.type_ = res_type
             return res_type
 
         case If(condition, block):
@@ -204,7 +213,7 @@ def type_check(ctx : Context, node) -> bool:
                 arg_type = type_check(ctx, arg)
                 if arg_type != params[i].type_:
                     raise TypeError(f"Type mismatch in {node}, expected {f_context[1][i][1]} but got {arg_type}")
-            
+            node.type_ = f_context[2]
             return f_context[2]
 
         case FunctionDeclaration(name, params, type_):
@@ -260,6 +269,8 @@ def type_check(ctx : Context, node) -> bool:
             return BooleanType()
         case FloatLit(value):
             return FloatType()
+        case CharLit(value):
+            return CharType()
         case String(value):
             return StringType()
         case _:
@@ -274,5 +285,7 @@ if __name__ == "__main__":
     program = file.read()
     # Example usage
     program_ast = parse_plush(program)
-    # print(program_ast.pretty())
-    type_check(Context(), program_ast)
+    # print(tree_to_string(program_ast))
+    typed_tree = type_check(Context(), program_ast)
+    for node in typed_tree.defs_or_decls:
+        print(node)

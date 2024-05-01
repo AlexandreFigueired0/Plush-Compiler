@@ -63,14 +63,15 @@ plush_grammar = f"""
             | BOOLEAN   -> boolean_lit
             | NAME      -> id
             | STRING    -> string  
+            | CHAR      -> char_lit
             | "-" atom -> unary_minus
             | "!" atom -> not_
             | "(" logic_less_priority ")"     
             | array_access 
             | function_call
 
-    ?array_access: NAME ("[" expression "]")+
     function_call: NAME "(" concrete_params ")"
+    ?array_access: (NAME|function_call) ("[" expression "]")+
     concrete_params: expression ("," expression)*  
                     |
     
@@ -87,6 +88,7 @@ plush_grammar = f"""
     FLOAT.2: /[0-9]*\.[0-9]+/
     BOOLEAN.3: /true|false/
     STRING: /\"[^"]*\"/
+    CHAR: /\'[^']\'/
     NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
 
     COMMENT: /\#[^\n]+/x

@@ -8,7 +8,6 @@ class Type(ABC):
 @dataclass
 class Expression(ABC):
     pass
-
 # START
 
 @dataclass
@@ -92,13 +91,14 @@ class While():
     block: list
 
 
+
+# EXPRESSIONS
+
 @dataclass
 class FunctionCall():
     name: str
     args: list
-
-
-# EXPRESSIONS
+    type_: Type = None
 
 @dataclass
 class Or(Expression):
@@ -151,39 +151,46 @@ class GreaterThanOrEqual(Expression):
 class Add(Expression):
     left: Expression
     right: Expression
+    type_: Type = None
 
 
 @dataclass
 class Sub(Expression):
     left: Expression
     right: Expression
+    type_: Type = None
 
 
 @dataclass
 class Power(Expression):
     left: Expression
     right: Expression
+    type_: Type = None
 
 
 @dataclass
 class Mul(Expression):
     left: Expression
     right: Expression
+    type_: Type = None
 
 
 @dataclass
 class Div(Expression):
     left: Expression
     right: Expression
+    type_: Type = None
 
 @dataclass
 class Mod(Expression):
     left: Expression
     right: Expression
+    type_: Type = None
 
 @dataclass
 class UnaryMinus(Expression):
     expr: Expression
+    type_: Type = None
 
 
 @dataclass
@@ -195,10 +202,12 @@ class LogicNot(Expression):
 class ArrayAccess(Expression):
     name: str
     indexes: list[Expression]
+    type_: Type = None
 
 @dataclass
 class Id(Expression):
     name: str
+    type_: Type = None
 
 
 @dataclass
@@ -211,6 +220,9 @@ class IntLit(Expression):
 class FloatLit(Expression):
     value: float
 
+@dataclass
+class CharLit(Expression):
+    value: str
 
 @dataclass
 class BooleanLit(Expression):
