@@ -1,7 +1,9 @@
-function get_array(): [[int]];
+# function get_array(): [[int]];
+function print(val s : string);
+function print_int(val x : int);
 
 function main(var args :int) {
-    if (args < 2) {
-        var x : int := 0;
-    }
+    var x : int := 1 - 3 * 5;
+    print("ola");
+    print_int(-x);
 }

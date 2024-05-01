@@ -305,6 +305,13 @@ def type_check(ctx : Context, node) -> bool:
             raise TypeError(f"Unknown node type {node}")
 
 
+def type_check_program(filename):
+    file = open(filename,"r")
+    program = file.read()
+    program_ast = parse_plush(program)
+    typed_tree = type_check(Context(), program_ast)
+    return typed_tree
+
 if __name__ == "__main__":
     program = """
         val y: int := 1 + (1* true);
