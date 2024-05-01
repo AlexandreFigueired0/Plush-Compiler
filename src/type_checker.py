@@ -106,8 +106,7 @@ def type_check(ctx : Context, node) -> bool:
             node.type_ = left_type
             return left_type
         
-        case Or(left, right) | And(left, right) | Equal(left, right) | NotEqual(left, right) | GreaterThan(left, right) | \
-              GreaterThanOrEqual(left, right) | LessThan(left, right) | LessThanOrEqual(left, right):
+        case Or(left, right) | And(left, right):
             
             left_type = type_check(ctx, left)
             right_type = type_check(ctx, right)
@@ -118,6 +117,31 @@ def type_check(ctx : Context, node) -> bool:
             
             return BooleanType()
         
+        case Equal(left, right) | NotEqual(left, right):
+            
+            left_type = type_check(ctx, left)
+            right_type = type_check(ctx, right)
+
+            if left_type != right_type:
+                raise TypeError(f"Type mismatch in {node}, both operands must be of the same type but found {left_type} and {right_type}")
+            
+            return BooleanType()
+        
+        case GreaterThan(left, right) | GreaterThanOrEqual(left, right) | \
+            LessThan(left, right) | LessThanOrEqual(left, right):
+
+            left_type = type_check(ctx, left)
+            right_type = type_check(ctx, right)
+
+            wrong_type = left_type if left_type not in [IntType(), FloatType()] else right_type
+            if wrong_type not in [IntType(), FloatType()]:
+                raise TypeError(f"Type mismatch in {node}, both operands must be both of numerical type but found {wrong_type}")
+            
+            if left_type != right_type:
+                raise TypeError(f"Type mismatch in {node}, both operands must be both of the same type but found {left_type} and {right_type}")
+            
+            return BooleanType()
+
         case UnaryMinus(expr):
             expr_type = type_check(ctx, expr)
             if expr_type not in [IntType(), FloatType()]:
@@ -164,7 +188,8 @@ def type_check(ctx : Context, node) -> bool:
             
             #TODO: entr block?
             ctx.enter_block()
-            type_check(ctx, block)
+            for statement in block:
+                type_check(ctx, statement)
             ctx.exit_block()
 
         case IfElse(condition, block, else_block):
@@ -174,11 +199,13 @@ def type_check(ctx : Context, node) -> bool:
             
             #TODO: entr block?
             ctx.enter_block()
-            type_check(ctx, block)
+            for statement in block:
+                type_check(ctx, statement)
             ctx.exit_block()
 
             ctx.enter_block()
-            type_check(ctx, else_block)
+            for statement in else_block:
+                type_check(ctx, statement)
             ctx.exit_block()
         
         case While(condition, block):
@@ -188,7 +215,8 @@ def type_check(ctx : Context, node) -> bool:
             
             #TODO: entr block?
             ctx.enter_block()
-            type_check(ctx, block)
+            for statement in block:
+                type_check(ctx, statement)
             ctx.exit_block()
         
         #TODO: Check if the function exists
