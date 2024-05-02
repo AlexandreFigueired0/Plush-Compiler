@@ -103,8 +103,11 @@ def type_check(ctx : Context, node) -> bool:
             if left_type != right_type:
                 raise TypeError(f"Type mismatch in {node}, both operands must be both of the same type but found {left_type} and {right_type}")
 
-            node.type_ = left_type
-            return left_type
+            # TODO: A mod always returns a int?
+            expr_type = IntType() if isinstance(node, Mod) else left_type
+
+            node.type_ = expr_type
+            return expr_type
         
         case Or(left, right) | And(left, right):
             
@@ -290,7 +293,9 @@ def type_check(ctx : Context, node) -> bool:
             ctx.set_type(name, f_context, False)
 
         case Id(name):
-            return ctx.get_type(name)[0]
+            res = ctx.get_type(name)[0]
+            node.type_ = res
+            return res
         case IntLit(value):
             return IntType()
         case BooleanLit(value):
