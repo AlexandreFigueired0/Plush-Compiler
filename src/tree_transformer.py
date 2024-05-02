@@ -199,7 +199,7 @@ def tree_to_string(tree, indent=0):
         case FunctionDefinition(name, params, type_, block):
             params = "\n".join(map(lambda x : tree_to_string(x,indent+1), params)) if params else ""
             return f"{tab}func_def\n{tab2}{name}\n{tab2}params\n" + params +\
-                f"\n{tab2}{type_ if type_ else ""}\n{tab2}block\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), block))
+                f"""\n{tab2}{type_ if type_ else ""}\n{tab2}block\n""" + "\n".join(map(lambda x : tree_to_string(x,indent+1), block))
         case ArrayPositionAssignment(name, indexes, expr):
             return f"{tab}array_pos_assign\n{tab2}{name}\n{tab2}indexes\n" + "\n".join(map(lambda x : tree_to_string(x,indent+1), indexes)) + f"\n{tree_to_string(expr,indent)}"
         case If(condition, block):
