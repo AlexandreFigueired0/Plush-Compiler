@@ -247,9 +247,9 @@ class FloatType(Type):
         return "float"
 
 @dataclass
-class DoubleType(Type):
+class BooleanType(Type):
     def __str__(self):
-        return "double"
+        return "boolean"
 
 @dataclass
 class StringType(Type):
@@ -261,10 +261,6 @@ class CharType(Type):
     def __str__(self):
         return "char"
 
-@dataclass
-class BooleanType(Type):
-    def __str__(self):
-        return "boolean"
 
 @dataclass
 class ArrayType(Type):

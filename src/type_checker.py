@@ -283,8 +283,9 @@ def type_check(ctx : Context, node) -> bool:
             for p in params:
                 ctx.set_type(p.name,p.type_, isinstance(p, VarParam))
 
-            # TODO: Check if the return type is correct
-            ctx.set_type(name, type_)
+            # TODO: If the func has a return, inject var with name of the func for the return
+            if type_:
+                ctx.set_type(name, type_)
 
             for statement in block:
                 type_check(ctx, statement)
