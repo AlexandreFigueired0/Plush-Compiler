@@ -92,6 +92,42 @@ class While():
 
 
 
+# TYPES
+
+@dataclass
+class IntType(Type):
+    def __str__(self):
+        return "int"
+
+@dataclass
+class FloatType(Type):
+    def __str__(self):
+        return "float"
+
+@dataclass
+class BooleanType(Type):
+    def __str__(self):
+        return "boolean"
+
+@dataclass
+class StringType(Type):
+    def __str__(self):
+        return "string"
+
+@dataclass
+class CharType(Type):
+    def __str__(self):
+        return "char"
+
+
+@dataclass
+class ArrayType(Type):
+    type_: Type
+
+    def __str__(self):
+        return f"array of {self.type_}"
+
+
 # EXPRESSIONS
 
 @dataclass
@@ -104,48 +140,49 @@ class FunctionCall():
 class Or(Expression):
     left: Expression
     right: Expression
+    type_ = BooleanType()
 
 
 @dataclass
 class And(Expression):
     left: Expression
     right: Expression
-
+    type_ = BooleanType()
 
 @dataclass
 class Equal(Expression):
     left: Expression
     right: Expression
-
+    type_ = BooleanType()
 
 @dataclass
 class NotEqual(Expression):
     left: Expression
     right: Expression
-
+    type_ = BooleanType()
 
 @dataclass
 class LessThan(Expression):
     left: Expression
     right: Expression
-
+    type_ = BooleanType()
 @dataclass
 class GreaterThan(Expression):
     left: Expression
     right: Expression
-
+    type_ = BooleanType()
 
 @dataclass
 class LessThanOrEqual(Expression):
     left: Expression
     right: Expression
-
+    type_ = BooleanType()
 
 @dataclass
 class GreaterThanOrEqual(Expression):
     left: Expression
     right: Expression
-
+    type_ = BooleanType()
 
 @dataclass
 class Add(Expression):
@@ -213,58 +250,28 @@ class Id(Expression):
 @dataclass
 class IntLit(Expression):
     value: int
+    type_ = IntType()
 
     
 
 @dataclass
 class FloatLit(Expression):
     value: float
+    type_ = FloatType()
 
 @dataclass
 class CharLit(Expression):
     value: str
+    type_ = CharType()
 
 @dataclass
 class BooleanLit(Expression):
     value: bool
+    type_ = BooleanType()
 
 
 @dataclass
 class String(Expression):
     value: str
+    type_ = StringType()
 
-
-# TYPES
-
-@dataclass
-class IntType(Type):
-    def __str__(self):
-        return "int"
-
-@dataclass
-class FloatType(Type):
-    def __str__(self):
-        return "float"
-
-@dataclass
-class BooleanType(Type):
-    def __str__(self):
-        return "boolean"
-
-@dataclass
-class StringType(Type):
-    def __str__(self):
-        return "string"
-
-@dataclass
-class CharType(Type):
-    def __str__(self):
-        return "char"
-
-
-@dataclass
-class ArrayType(Type):
-    type_: Type
-
-    def __str__(self):
-        return f"array of {self.type_}"

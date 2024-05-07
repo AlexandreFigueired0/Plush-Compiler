@@ -78,19 +78,25 @@ def compile(emitter: Emitter, node):
 
             value = compile(emitter, expr)
             emitter << f"\tstore {llvm_type} {value}, {llvm_type}* {pname}"
+        case Assignment(vname, expr):
+            pname = emitter.get_pointer_name(vname)
+            value = compile(emitter, expr)
+            llvm_type = TYPES[str(expr.type_)]
+            emitter << f"\tstore i32 {value}, i32* {pname}"
         case If(cond, block):
             compiled_cond  = compile(emitter, cond)
-            true_count = emitter.get_count()
-            false_count = emitter.get_count()
-            emitter << f"\tbr i1 {compiled_cond}, label %if_true{true_count}, label %if_false{false_count}"
-            emitter << "\n"
-            emitter << f"if_true{true_count}:"
+            then_count = emitter.get_count()
+            end_count = emitter.get_count()
+            emitter << f"\tbr i1 {compiled_cond}, label %if_true{then_count}, label %if_end{end_count}"
+
+            emitter << f"if_true{then_count}:"
             emitter.enter_block()
             for stmt in block:
                 compile(emitter, stmt)
+            emitter << f"\tbr label %if_end{end_count}"
             emitter.exit_block()
-            emitter << "\n"
 
+            emitter << f"if_end{end_count}:"
 
         case FunctionCall(name, args, type_):
             if name == "print_int":
@@ -137,7 +143,8 @@ def compile(emitter: Emitter, node):
             r = compile(emitter, right)
             tmp_ptr = "%" + emitter.get_temp()
             operator = OPS[type(node)]
-            emitter << f"   {tmp_ptr} = {operator} i32 {l}, {r}"
+            llvm_type = TYPES[str(type_)]
+            emitter << f"   {tmp_ptr} = {operator} {llvm_type} {l}, {r}"
             return tmp_ptr
         case Power(left, right, type_):
             raise NotImplementedError("Power operator not implemented")
@@ -153,10 +160,11 @@ def compile(emitter: Emitter, node):
             operator = OPS[type(node)]
             emitter << f"\t{tmp_ptr} = {operator} i32 {l}, {r}"
             return tmp_ptr
-        case Id(vname):
+        case Id(vname, type_):
             reg = "%" + emitter.get_temp()
             pname = emitter.get_pointer_name(vname)
-            emitter << f"   {reg} = load i32, i32* {pname}"
+            llvm_type = TYPES[str(type_)]
+            emitter << f"\t{reg} = load {llvm_type}, {llvm_type}* {pname}"
             return reg
         case IntLit(value):
             return value
