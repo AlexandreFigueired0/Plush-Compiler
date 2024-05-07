@@ -163,9 +163,6 @@ class PlushTree(Transformer):
     def float_type(self):
         return FloatType()
     
-    def double_type(self):
-        return DoubleType()
-    
     def string_type(self):
         return StringType()
     

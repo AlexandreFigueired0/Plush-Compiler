@@ -7,7 +7,7 @@ types = {
     "char": "i8",
     "string": "i8",
     "boolean": "i1",
-    "None": "i32"
+    "None": "void"
 }
 
 class Emitter(object):
@@ -53,8 +53,8 @@ def compile(emitter: Emitter, node):
             if name == "print_int":
                 arg = args[0]
                 id = emitter.get_id()
-                str_name = f"@.casual_str_{id}"
-                str_decl = f"""{str_name} = private unnamed_addr constant [4 x i8] c"%d\\0A\\00", align 1"""
+                str_name = f"@.plush_str_{id}"
+                str_decl = f"""{str_name} = private  constant [4 x i8] c"%d\\0A\\00" """
                 emitter.lines.insert(0, str_decl)
 
                 val = compile(emitter,arg)
@@ -64,6 +64,7 @@ def compile(emitter: Emitter, node):
         case FunctionDeclaration(name, params, type_):
             pass
         case FunctionDefinition(name, params, type_, block):
+            # TODO: Add params
             return_type = types[str(type_)]
             emitter << f"define {return_type} @{name}() {{"
             
@@ -74,7 +75,7 @@ def compile(emitter: Emitter, node):
             if type_:
                 ret_str = f"\tret {return_type} 0"
             else:
-                ret_str = f"\tret {return_type} 0"
+                ret_str = f"\tret {return_type}"
 
             emitter << ret_str
             emitter << "}"
@@ -100,7 +101,7 @@ if __name__ == "__main__":
 
     # /usr/local/opt/llvm/bin/lli code.ll
     r = subprocess.call(
-        # "llc code.ll && clang code.s -o code && ./code",
-        "lli code.ll",
+        "llc code.ll && clang code.s -o code -no-pie && ./code",
+        # "lli code.ll",
         shell=True,
     )
