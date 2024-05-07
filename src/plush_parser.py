@@ -4,13 +4,13 @@ from tree_transformer import PlushTree, tree_to_string
 
 
 plush_grammar = f"""
-    start: (function_declaration | definition)*
+    start: (function_declaration | val_definition | var_definition | function_definition)*
 
     ?function_declaration: "function" NAME "(" params ")" (":" type)? ";" -> function_declaration
+    ?function_definition: "function" NAME "(" params ")" (":" type)? block -> function_definition
     
     ?definition : val_definition
                 | var_definition
-                | "function" NAME "(" params ")" (":" type)? block -> function_definition
                 | assignment
                 | array_position_assignment
     

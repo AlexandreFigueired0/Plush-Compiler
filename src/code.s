@@ -8,9 +8,9 @@ main:                                   # @main
 # %bb.0:
 	pushq	%rax
 	.cfi_def_cfa_offset 16
-	movl	$11, 4(%rsp)
-	movl	$.L.plush_str_cas_1, %edi
-	movl	$11, %esi
+	movl	$2, 4(%rsp)
+	movl	$.L.plush_str_tmp_3, %edi
+	movl	$2, %esi
 	xorl	%eax, %eax
 	callq	printf@PLT
 	popq	%rax
@@ -20,10 +20,10 @@ main:                                   # @main
 	.size	main, .Lfunc_end0-main
 	.cfi_endproc
                                         # -- End function
-	.type	.L.plush_str_cas_1,@object      # @.plush_str_cas_1
+	.type	.L.plush_str_tmp_3,@object      # @.plush_str_tmp_3
 	.section	.rodata,"a",@progbits
-.L.plush_str_cas_1:
+.L.plush_str_tmp_3:
 	.asciz	"%d\n"
-	.size	.L.plush_str_cas_1, 4
+	.size	.L.plush_str_tmp_3, 4
 
 	.section	".note.GNU-stack","",@progbits

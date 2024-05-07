@@ -103,11 +103,8 @@ def type_check(ctx : Context, node) -> bool:
             if left_type != right_type:
                 raise TypeError(f"Type mismatch in {node}, both operands must be both of the same type but found {left_type} and {right_type}")
 
-            # TODO: A mod always returns a int?
-            expr_type = IntType() if isinstance(node, Mod) else left_type
-
-            node.type_ = expr_type
-            return expr_type
+            node.type_ = left_type
+            return left_type
         
         case Or(left, right) | And(left, right):
             
@@ -263,7 +260,7 @@ def type_check(ctx : Context, node) -> bool:
             if ctx.has_var(name) and ctx.get_type(name)[1] == False:
                 raise TypeError(f"Function {name} already defiend")
             # Function declared, but not defined
-            # TODO: Check if the arguments are correct, type and modifiers
+            # TODO: Check if the arguments are correct, type and immut modifiers
             elif ctx.has_var(name) and ctx.get_type(name)[1] == True:
                 f_declared,_ = ctx.get_type(name)
 
