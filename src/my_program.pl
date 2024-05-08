@@ -1,4 +1,4 @@
-function print_int(val x : int); # FFI
+# function print_int(val x : int); # FFI
 
 function main() {
 	var x : int := 1+1;

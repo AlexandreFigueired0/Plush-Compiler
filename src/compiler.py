@@ -59,11 +59,26 @@ class Emitter(object):
     
     def exit_block(self):
         self.context.pop()
-    
+
+def first_traversal(emitter, node: Start):
+    """
+    This function is used to declare all variables and functions in the global scope.
+    Also, it will declare all strings and arrays used in the program.
+    """
+    for global_node in node.defs_or_decls:
+        match global_node:
+            case VarDefinition(vname, type_, expr):
+                emitter.decl_var(vname)
+
+        
+
 def compile(emitter: Emitter, node):
+    # first_traversal(emitter, node)
+    # assert len(emitter.context) == 1
     match node:
         case Start( defs_or_decls ):
-            emitter << "declare i32 @printf(i8*, ...) #1"
+            predef_funcs_file = open("../plush_functions.ll", "r")
+            emitter << predef_funcs_file.read()
             
             for def_or_decl in defs_or_decls:
                 compile(emitter, def_or_decl)
@@ -99,17 +114,10 @@ def compile(emitter: Emitter, node):
             emitter << f"if_end{end_count}:"
 
         case FunctionCall(name, args, type_):
-            if name == "print_int":
-                arg = args[0]
-                id = emitter.get_temp()
-                str_name = f"@.plush_str_{id}"
-                str_decl = f"""{str_name} = private  constant [4 x i8] c"%d\\0A\\00" """
-                emitter.lines.insert(0, str_decl)
-
-                val = compile(emitter,arg)
-                nreg = "%" + emitter.get_temp()
-                emitter << f"""\t{nreg} = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* {str_name}, i64 0, i64 0), i32 {val})"""
-                return nreg
+            args_compiled = [(compile(emitter, arg),arg.type_) for arg in args]
+            llvm_type = TYPES[str(type_)]
+            llvm_concrete_types = [ f"{TYPES[str(type_)]}  {reg}" for reg, type_ in args_compiled]
+            emitter << f"\tcall {llvm_type} @{name}( {', '.join(llvm_concrete_types)} )"
         case FunctionDeclaration(name, params, type_):
             pass
         case FunctionDefinition(name, params, type_, block):
@@ -187,3 +195,4 @@ if __name__ == "__main__":
         # "lli code.ll",
         shell=True,
     )
+    print()

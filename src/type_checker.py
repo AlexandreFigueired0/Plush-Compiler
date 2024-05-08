@@ -36,6 +36,7 @@ class Context():
 def type_check(ctx : Context, node) -> bool:
     match node:
         case Start(defs_or_decls):
+            ctx.set_type("print_int", ("print_int",[ValParam(name="x", type_ = IntType())],None), False)
             for def_or_decl in defs_or_decls:
                 type_check(ctx, def_or_decl)
             return node
