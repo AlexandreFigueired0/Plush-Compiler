@@ -28,13 +28,16 @@ main:                                   # @main
 # %bb.0:
 	pushq	%rax
 	.cfi_def_cfa_offset 16
-	movl	$2, 4(%rsp)
-	movb	$1, %al
+	movl	$10, 4(%rsp)
+	xorl	%eax, %eax
 	testb	%al, %al
 	jne	.LBB1_2
 # %bb.1:                                # %if_true5
 	movl	$1, 4(%rsp)
-.LBB1_2:                                # %if_end6
+	jmp	.LBB1_3
+.LBB1_2:                                # %else6
+	movl	$2, 4(%rsp)
+.LBB1_3:                                # %if_end7
 	movl	4(%rsp), %edi
 	callq	print_int@PLT
 	popq	%rax

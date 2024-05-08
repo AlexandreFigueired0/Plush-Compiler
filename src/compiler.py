@@ -113,6 +113,31 @@ def compile(emitter: Emitter, node):
 
             emitter << f"if_end{end_count}:"
 
+        case IfElse(cond, then_block, else_block):
+            compiled_cond  = compile(emitter, cond)
+            then_count = emitter.get_count()
+            else_count = emitter.get_count()
+            end_count = emitter.get_count()
+
+            emitter << f"\tbr i1 {compiled_cond}, label %if_true{then_count}, label %else{else_count}"
+
+            emitter << f"if_true{then_count}:"
+            emitter.enter_block()
+            for stmt in then_block:
+                compile(emitter, stmt)
+            emitter << f"\tbr label %if_end{end_count}"
+            emitter.exit_block()
+
+            emitter << f"else{else_count}:"
+            emitter.enter_block()
+            for stmt in else_block:
+                compile(emitter, stmt)
+            emitter << f"\tbr label %if_end{end_count}"
+            emitter.exit_block()
+
+            emitter << f"if_end{end_count}:"
+
+
         case FunctionCall(name, args, type_):
             args_compiled = [(compile(emitter, arg),arg.type_) for arg in args]
             llvm_type = TYPES[str(type_)]

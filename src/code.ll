@@ -11,16 +11,19 @@ entry:
 }
 define void @main() {
 	%x1 = alloca i32
-   %tmp_2 = add i32 1, 1
+   %tmp_2 = mul i32 10, 1
 	store i32 %tmp_2, i32* %x1
 	%tmp_3 = load i32, i32* %x1
-	%tmp_4 = icmp sgt i32 %tmp_3, 2
-	br i1 %tmp_4, label %if_true5, label %if_end6
+	%tmp_4 = icmp sgt i32 %tmp_3, 0
+	br i1 %tmp_4, label %if_true5, label %else6
 if_true5:
 	store i32 1, i32* %x1
-	br label %if_end6
-if_end6:
-	%tmp_7 = load i32, i32* %x1
-	call void @print_int( i32  %tmp_7 )
+	br label %if_end7
+else6:
+	store i32 2, i32* %x1
+	br label %if_end7
+if_end7:
+	%tmp_8 = load i32, i32* %x1
+	call void @print_int( i32  %tmp_8 )
 	ret void
 }
