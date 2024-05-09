@@ -16,12 +16,17 @@ OPS = {
     Mul: "mul",
     Div: "sdiv",
     Mod: "srem",
-    Equal: "icmp eq",
-    NotEqual: "icmp ne",
-    LessThan: "icmp slt",
-    LessThanOrEqual: "icmp sle",
-    GreaterThan: "icmp sgt",
-    GreaterThanOrEqual: "icmp sge",
+    Equal: "eq",
+    NotEqual: "ne",
+    LessThan: "slt",
+    LessThanOrEqual: "sle",
+    GreaterThan: "sgt",
+    GreaterThanOrEqual: "sge",
+    And: "and",
+    Or: "or",
+    LogicNot: "not",
+    UnaryMinus: "sub",
+    Power: "pow",
 }
 
 class Emitter(object):
@@ -97,7 +102,7 @@ def compile(emitter: Emitter, node):
             pname = emitter.get_pointer_name(vname)
             value = compile(emitter, expr)
             llvm_type = TYPES[str(expr.type_)]
-            emitter << f"\tstore i32 {value}, i32* {pname}"
+            emitter << f"\tstore {llvm_type} {value}, {llvm_type}* {pname}"
         case If(cond, block):
             compiled_cond  = compile(emitter, cond)
             then_count = emitter.get_count()
@@ -136,7 +141,25 @@ def compile(emitter: Emitter, node):
             emitter.exit_block()
 
             emitter << f"if_end{end_count}:"
+        
+        case While(cond, block):
+            while_cond_count = emitter.get_count()
+            while_body_count = emitter.get_count() 
+            while_end_count = emitter.get_count()
+            emitter << f"\tbr label %while_cond{while_cond_count}"
 
+            emitter << f"while_cond{while_cond_count}:"
+            compiled_cond = compile(emitter, cond)
+            emitter << f"\tbr i1 {compiled_cond}, label %while_body{while_body_count}, label %while_end{while_end_count}"
+
+            emitter << f"while_body{while_body_count}:"
+            emitter.enter_block()
+            for stmt in block:
+                compile(emitter, stmt)
+            emitter << f"\tbr label %while_cond{while_cond_count}"
+            emitter.exit_block()
+
+            emitter << f"while_end{while_end_count}:"
 
         case FunctionCall(name, args, type_):
             args_compiled = [(compile(emitter, arg),arg.type_) for arg in args]
@@ -144,6 +167,7 @@ def compile(emitter: Emitter, node):
             llvm_concrete_types = [ f"{TYPES[str(type_)]}  {reg}" for reg, type_ in args_compiled]
             emitter << f"\tcall {llvm_type} @{name}( {', '.join(llvm_concrete_types)} )"
         case FunctionDeclaration(name, params, type_):
+            #TODO: pass?
             pass
         case FunctionDefinition(name, params, type_, block):
             emitter.enter_block()
@@ -181,17 +205,31 @@ def compile(emitter: Emitter, node):
             return tmp_ptr
         case Power(left, right, type_):
             raise NotImplementedError("Power operator not implemented")
-        case Or(left, right) | And(left, right):
-            raise NotImplementedError("Logical operators not implemented")
+        case Or(left, right)| And(left,right) :
+            l = compile(emitter, left)
+            r = compile(emitter, right)
+
+            operator = OPS[type(node)]
+            tmp_ptr = "%" + emitter.get_temp()
+            emitter << f"\t{tmp_ptr} = {operator} i1 {l}, {r}"
+            return tmp_ptr
         case LogicNot(expr):
-            raise NotImplementedError("Not operator not implemented")
+            compiled_expr = compile(emitter, expr)
+            tmp_ptr = "%" + emitter.get_temp()
+            emitter << f"\t{tmp_ptr} = xor i1 {compiled_expr}, 1"
+            return tmp_ptr
+        case UnaryMinus(expr):
+            compiled_expr = compile(emitter, expr)
+            tmp_ptr = "%" + emitter.get_temp()
+            emitter << f"\t{tmp_ptr} = sub i32 0, {compiled_expr}"
+            return tmp_ptr
         case LessThan(left, right) | LessThanOrEqual(left, right) |\
                 GreaterThan(left, right) | GreaterThanOrEqual(left, right):
             l = compile(emitter, left)
             r = compile(emitter, right)
             tmp_ptr = "%" + emitter.get_temp()
             operator = OPS[type(node)]
-            emitter << f"\t{tmp_ptr} = {operator} i32 {l}, {r}"
+            emitter << f"\t{tmp_ptr} = icmp {operator} i32 {l}, {r}"
             return tmp_ptr
         case Id(vname, type_):
             reg = "%" + emitter.get_temp()
@@ -201,6 +239,15 @@ def compile(emitter: Emitter, node):
             return reg
         case IntLit(value):
             return value
+        case FloatLit(value):
+            return value
+        case CharLit(value):
+            return value
+        case String(value):
+            return value
+        case BooleanLit(value):
+            return value
+        
         case _:
             raise TypeError(f"Unknown node type {node}")
 

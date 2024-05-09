@@ -28,16 +28,18 @@ main:                                   # @main
 # %bb.0:
 	pushq	%rax
 	.cfi_def_cfa_offset 16
-	movl	$10, 4(%rsp)
-	xorl	%eax, %eax
-	testb	%al, %al
-	jne	.LBB1_2
-# %bb.1:                                # %if_true5
-	movl	$1, 4(%rsp)
-	jmp	.LBB1_3
-.LBB1_2:                                # %else6
-	movl	$2, 4(%rsp)
-.LBB1_3:                                # %if_end7
+	movl	$-1, 4(%rsp)
+	cmpl	$4, 4(%rsp)
+	jg	.LBB1_3
+	.p2align	4, 0x90
+.LBB1_2:                                # %while_body4
+                                        # =>This Inner Loop Header: Depth=1
+	movl	4(%rsp), %edi
+	callq	print_int@PLT
+	incl	4(%rsp)
+	cmpl	$4, 4(%rsp)
+	jle	.LBB1_2
+.LBB1_3:                                # %while_end5
 	movl	4(%rsp), %edi
 	callq	print_int@PLT
 	popq	%rax
@@ -50,7 +52,7 @@ main:                                   # @main
 	.type	.L.str,@object                  # @.str
 	.section	.rodata.str1.1,"aMS",@progbits,1
 .L.str:
-	.asciz	"%d"
-	.size	.L.str, 3
+	.asciz	"%d\n"
+	.size	.L.str, 4
 
 	.section	".note.GNU-stack","",@progbits

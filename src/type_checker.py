@@ -97,7 +97,6 @@ def type_check(ctx : Context, node) -> bool:
             right_type = type_check(ctx, right)
 
             wrong_type = left_type if left_type not in [IntType(), FloatType()] else right_type
-            #TODO: Como mostrar estes erros? eu nao sei se eh para ser float ou int
             if wrong_type not in [IntType(), FloatType()]:
                 raise TypeError(f"Type mismatch in {node}, both operands must be both of numerical type but found {wrong_type}")
 
@@ -241,7 +240,7 @@ def type_check(ctx : Context, node) -> bool:
             for i, arg in enumerate(given_args):
                 arg_type = type_check(ctx, arg)
                 if arg_type != params[i].type_:
-                    raise TypeError(f"Type mismatch in {node}, expected {f_context[1][i][1]} but got {arg_type}")
+                    raise TypeError(f"Type mismatch in {node}, expected {f_context[1][i].type_} but got {arg_type}")
             node.type_ = f_context[2]
             return f_context[2]
 
