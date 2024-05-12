@@ -82,7 +82,7 @@ def compile(emitter: Emitter, node):
     # assert len(emitter.context) == 1
     match node:
         case Start( defs_or_decls ):
-            predef_funcs_file = open("../plush_functions.ll", "r")
+            predef_funcs_file = open("../pre_def_funcs.ll", "r")
             emitter << predef_funcs_file.read()
             
             for def_or_decl in defs_or_decls:
@@ -201,10 +201,14 @@ def compile(emitter: Emitter, node):
             tmp_ptr = "%" + emitter.get_temp()
             operator = OPS[type(node)]
             llvm_type = TYPES[str(type_)]
-            emitter << f"   {tmp_ptr} = {operator} {llvm_type} {l}, {r}"
+            emitter << f"\t{tmp_ptr} = {operator} {llvm_type} {l}, {r}"
             return tmp_ptr
-        case Power(left, right, type_):
-            raise NotImplementedError("Power operator not implemented")
+        case Power(base, exponent, type_):
+            b = compile(emitter, base)
+            e = compile(emitter, exponent)
+            tmp_ptr = "%" + emitter.get_temp()
+            emitter << f"\t{tmp_ptr} = call i32 @power_int(i32 {b}, i32 {e})"
+            return tmp_ptr
         case Or(left, right)| And(left,right) :
             l = compile(emitter, left)
             r = compile(emitter, right)
@@ -261,9 +265,11 @@ if __name__ == "__main__":
         f.write(llvm_code)
     import subprocess
 
+    lib_flags = "-lm"
     # /usr/local/opt/llvm/bin/lli code.ll
     r = subprocess.call(
-        "llc code.ll && clang code.s -o code -no-pie && ./code",
+        # "llc code.ll && clang code.s -o code -no-pie && ./code",
+        f"llc code.ll && gcc -c plush_functions.c && clang code.s plush_functions.o {lib_flags} -o code && ./code",
         # "lli code.ll",
         shell=True,
     )

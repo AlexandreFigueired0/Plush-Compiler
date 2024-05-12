@@ -33,10 +33,38 @@ class Context():
     def exit_block(self):
         self.stack.pop()
 
+def add_pre_def_funcs(ctx: Context):
+    ctx.set_type("print_int", ("print_int",[ValParam(name="x", type_ = IntType())],None), False)
+    ctx.set_type("power_int", ("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],None), False)
+
+def gather_global_vars_and_funcs(ctx: Context, node):
+    for global_node in node.defs_or_decls:
+        match global_node:
+            # case VarDefinition(vname, type_, expr):
+            #     ctx.set_type(vname, type_)
+            # case ValDefinition(vname, type_, expr):
+            #     ctx.set_type(vname, type_, False)
+            case FunctionDeclaration(name, params, type_):
+                if ctx.has_var(name):
+                    raise TypeError(f"Function {name} already declared")
+                
+                ctx.set_type(name, (name,params,type_))
+
+            case FunctionDefinition(name, params, type_, block):
+                if ctx.has_var(name) and ctx.get_type(name)[1] == False:
+                    raise TypeError(f"Function {name} already defined")
+                
+                ctx.set_type(name, (name,params,type_), False)
+            case _:
+                pass
+
 def type_check(ctx : Context, node) -> bool:
     match node:
         case Start(defs_or_decls):
-            ctx.set_type("print_int", ("print_int",[ValParam(name="x", type_ = IntType())],None), False)
+            add_pre_def_funcs(ctx)
+
+            gather_global_vars_and_funcs(ctx, node)
+
             for def_or_decl in defs_or_decls:
                 type_check(ctx, def_or_decl)
             return node
@@ -245,8 +273,7 @@ def type_check(ctx : Context, node) -> bool:
             return f_context[2]
 
         case FunctionDeclaration(name, params, type_):
-            if ctx.has_var(name):
-                raise TypeError(f"Function {name} already declared")
+
             
             f_context = (name,[],type_)
             for p in params:
@@ -256,12 +283,10 @@ def type_check(ctx : Context, node) -> bool:
         case FunctionDefinition(name, params, type_, block):
             f_context = (name,params,type_)
 
-            # Function already defined
-            if ctx.has_var(name) and ctx.get_type(name)[1] == False:
-                raise TypeError(f"Function {name} already defiend")
+
             # Function declared, but not defined
             # TODO: Check if the arguments are correct, type and immut modifiers
-            elif ctx.has_var(name) and ctx.get_type(name)[1] == True:
+            if ctx.has_var(name) and ctx.get_type(name)[1] == True:
                 f_declared,_ = ctx.get_type(name)
 
                 if len(f_declared[1]) != len(params):
