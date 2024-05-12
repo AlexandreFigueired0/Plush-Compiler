@@ -8,7 +8,6 @@ main:                                   # @main
 # %bb.0:
 	pushq	%rax
 	.cfi_def_cfa_offset 16
-	callq	hello@PLT
 	movl	$-1, 4(%rsp)
 	cmpl	$4, 4(%rsp)
 	jg	.LBB0_3
@@ -25,7 +24,7 @@ main:                                   # @main
 	callq	print_int@PLT
 	movl	4(%rsp), %edi
 	movl	$2, %esi
-	callq	power_int@PLT
+	callq	mult@PLT
 	movl	%eax, %edi
 	callq	print_int@PLT
 	popq	%rax
@@ -35,21 +34,20 @@ main:                                   # @main
 	.size	main, .Lfunc_end0-main
 	.cfi_endproc
                                         # -- End function
-	.globl	hello                           # -- Begin function hello
+	.globl	mult                            # -- Begin function mult
 	.p2align	4, 0x90
-	.type	hello,@function
-hello:                                  # @hello
+	.type	mult,@function
+mult:                                   # @mult
 	.cfi_startproc
 # %bb.0:
-	pushq	%rax
-	.cfi_def_cfa_offset 16
-	movl	$1, %edi
-	callq	print_int@PLT
-	popq	%rax
-	.cfi_def_cfa_offset 8
+	movl	%edi, %eax
+	movl	%edi, -8(%rsp)
+	movl	%esi, -12(%rsp)
+	imull	%esi, %eax
+	movl	%eax, -4(%rsp)
 	retq
 .Lfunc_end1:
-	.size	hello, .Lfunc_end1-hello
+	.size	mult, .Lfunc_end1-mult
 	.cfi_endproc
                                         # -- End function
 	.section	".note.GNU-stack","",@progbits

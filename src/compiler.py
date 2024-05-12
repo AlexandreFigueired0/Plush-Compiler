@@ -92,7 +92,12 @@ def compile(emitter: Emitter, node):
         
         case ValDefinition(vname, type_, expr) | VarDefinition(vname, type_, expr):
             emitter.decl_var(vname)
-            llvm_type = TYPES[str(type_)]
+
+            llvm_type = None
+            if isinstance(type_, ArrayType):
+                llvm_type
+            else:
+                llvm_type = TYPES[str(type_)]
             pname = emitter.get_pointer_name(vname)
             emitter << f"\t{pname} = alloca {llvm_type}"
 
@@ -163,35 +168,61 @@ def compile(emitter: Emitter, node):
 
         case FunctionCall(name, args, type_):
             args_compiled = [(compile(emitter, arg),arg.type_) for arg in args]
-            llvm_type = TYPES[str(type_)]
+            llvm_type = None
+            if isinstance(type_, ArrayType):
+                pass
+            else:
+                llvm_type = TYPES[str(type_)]
             llvm_concrete_types = [ f"{TYPES[str(type_)]}  {reg}" for reg, type_ in args_compiled]
-            emitter << f"\tcall {llvm_type} @{name}( {', '.join(llvm_concrete_types)} )"
+            
+            reg = ""
+            
+            if type_:
+                reg = "%" + emitter.get_temp()
+                emitter << f"\t{reg} = call {llvm_type} @{name}( {', '.join(llvm_concrete_types)} )"
+            else:
+                emitter << f"\tcall {llvm_type} @{name}( {', '.join(llvm_concrete_types)} )"
+            return reg
         case FunctionDeclaration(name, params, type_):
             #TODO: pass?
             pass
-        case FunctionDefinition(name, params, type_, block):
+        case FunctionDefinition(fname, params, type_, block):
             emitter.enter_block()
+            llvm_params = ", ".join([f"{TYPES[str(param.type_)]} %{param.name}" for param in params])
+            param_allocation = []
+            param_load = []
+            return_type = TYPES[str(type_)]
+            emitter << f"define {return_type} @{fname}({llvm_params}) {{"
+
             # TODO: Add params
             for param in params:
-                pname, ptype_ = param.name, param.type_S
-                emitter.decl_var(pname)
+                param_name, ptype_ = param.name, param.type_
+                emitter.decl_var(param_name)
                 llvm_type = TYPES[str(ptype_)]
-                pname = emitter.get_pointer_name(pname)
-                emitter << f"\t{pname} = alloca {llvm_type}"
+                pname = emitter.get_pointer_name(param_name)
+                param_allocation.append(f"\t{pname} = alloca {llvm_type}")
+                param_load.append(f"\tstore {llvm_type} %{param_name}, {llvm_type}* {pname}")
+            
+            if type_:
+                # Add return assign
+                emitter.decl_var(fname)
+                ret_pname = emitter.get_pointer_name(fname)
+                emitter << f"\t{ret_pname} = alloca {return_type}"
+            emitter << "\n".join(param_allocation)
+            emitter << "\n".join(param_load)
 
-            return_type = TYPES[str(type_)]
-            emitter << f"define {return_type} @{name}() {{"
             
             for stmt in block:
                 compile(emitter, stmt)
             
-            ret_str = None
+            ret_str = "\tret void"
             if type_:
-                ret_str = f"\tret {return_type} 0"
-            else:
-                ret_str = f"\tret {return_type}"
-
+                temp_reg = "%" + emitter.get_temp()
+                emitter << f"\t{temp_reg} = load {return_type}, {return_type}* {ret_pname}"
+                ret_str = f"\tret {return_type} {temp_reg}"
+            
             emitter << ret_str
+
             emitter << "}"
             emitter.exit_block()
         case Add(left, right, type_) | Sub(left, right, type_) | Mul(left, right, type_) |\

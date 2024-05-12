@@ -1,7 +1,6 @@
 # function print_int(val x : int); # FFI
 
 function main() {
-    hello();
 	var x : int := -1;
     while x < 5 {
         print_int(x);
@@ -9,10 +8,14 @@ function main() {
     }
 
     print_int(x);
-    print_int(x^2);
+    print_int(mult(x,2));
 }
 
-function hello(){
-    print_int(1);
+function mult(val x : int, val y : int) : int {
+    mult := x *  y;
 }
+
+# function a(){
+#     val x: [int] := get_int_array(5);
+# }
 
