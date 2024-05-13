@@ -75,7 +75,13 @@ def first_traversal(emitter, node: Start):
             case VarDefinition(vname, type_, expr):
                 emitter.decl_var(vname)
 
-        
+def get_array_llvm_type(type_):
+    stars = "*"
+    res_type = type_.type_
+    while isinstance(res_type, ArrayType):
+        stars += "*"
+        res_type = res_type.type_
+    return f"{TYPES[str(res_type)]}{stars}" 
 
 def compile(emitter: Emitter, node):
     # first_traversal(emitter, node)
@@ -93,9 +99,8 @@ def compile(emitter: Emitter, node):
         case ValDefinition(vname, type_, expr) | VarDefinition(vname, type_, expr):
             emitter.decl_var(vname)
 
-            llvm_type = None
             if isinstance(type_, ArrayType):
-                llvm_type
+                llvm_type = get_array_llvm_type(type_)
             else:
                 llvm_type = TYPES[str(type_)]
             pname = emitter.get_pointer_name(vname)
@@ -106,8 +111,38 @@ def compile(emitter: Emitter, node):
         case Assignment(vname, expr):
             pname = emitter.get_pointer_name(vname)
             value = compile(emitter, expr)
-            llvm_type = TYPES[str(expr.type_)]
+
+            llvm_type = None
+            if isinstance(expr.type_, ArrayType):
+                llvm_type = get_array_llvm_type(expr.type_)
+            else:
+                llvm_type = TYPES[str(expr.type_)]
             emitter << f"\tstore {llvm_type} {value}, {llvm_type}* {pname}"
+        case ArrayPositionAssignment(name, indexes, expr):
+            tmp_reg = "%" + emitter.get_temp()
+            pname = emitter.get_pointer_name(name)
+
+            stars = "*" * len(indexes)
+            type_ = expr.type_
+            while isinstance(type_, ArrayType):
+                type_ = type_.type_
+                stars += "*"
+
+            llvm_type = None
+            if isinstance(expr.type_, ArrayType):
+                llvm_type = get_array_llvm_type(expr.type_)
+            else:
+                llvm_type = TYPES[str(expr.type_)]
+
+            emitter << f"\t{tmp_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pname}"
+
+            expr_value = compile(emitter, expr)
+            for index in indexes:
+                index_value = compile(emitter, index)
+                pos_ptr = f"%{name}idx" + emitter.get_temp()
+                emitter << f"\t{pos_ptr} = getelementptr {llvm_type}, {llvm_type}* {tmp_reg}, i32 {index_value}"
+                tmp_reg = "%" + emitter.get_temp()
+                emitter << f"\tstore {llvm_type} {expr_value}, {llvm_type}* {pos_ptr}"
         case If(cond, block):
             compiled_cond  = compile(emitter, cond)
             then_count = emitter.get_count()
@@ -170,19 +205,19 @@ def compile(emitter: Emitter, node):
             args_compiled = [(compile(emitter, arg),arg.type_) for arg in args]
             llvm_type = None
             if isinstance(type_, ArrayType):
-                pass
+                llvm_type = get_array_llvm_type(type_)
             else:
                 llvm_type = TYPES[str(type_)]
             llvm_concrete_types = [ f"{TYPES[str(type_)]}  {reg}" for reg, type_ in args_compiled]
             
-            reg = ""
+            tmp_reg = ""
             
             if type_:
-                reg = "%" + emitter.get_temp()
-                emitter << f"\t{reg} = call {llvm_type} @{name}( {', '.join(llvm_concrete_types)} )"
+                tmp_reg = "%" + emitter.get_temp()
+                emitter << f"\t{tmp_reg} = call {llvm_type} @{name}( {', '.join(llvm_concrete_types)} )"
             else:
                 emitter << f"\tcall {llvm_type} @{name}( {', '.join(llvm_concrete_types)} )"
-            return reg
+            return tmp_reg
         case FunctionDeclaration(name, params, type_):
             #TODO: pass?
             pass
@@ -191,7 +226,12 @@ def compile(emitter: Emitter, node):
             llvm_params = ", ".join([f"{TYPES[str(param.type_)]} %{param.name}" for param in params])
             param_allocation = []
             param_load = []
-            return_type = TYPES[str(type_)]
+
+            return_type = None
+            if isinstance(type_, ArrayType):
+                return_type = get_array_llvm_type(type_)
+            else:
+                return_type = TYPES[str(type_)]
             emitter << f"define {return_type} @{fname}({llvm_params}) {{"
 
             # TODO: Add params
@@ -208,8 +248,9 @@ def compile(emitter: Emitter, node):
                 emitter.decl_var(fname)
                 ret_pname = emitter.get_pointer_name(fname)
                 emitter << f"\t{ret_pname} = alloca {return_type}"
-            emitter << "\n".join(param_allocation)
-            emitter << "\n".join(param_load)
+            if len(params) > 0:
+                emitter << "\n".join(param_allocation)
+                emitter << "\n".join(param_load)
 
             
             for stmt in block:
@@ -229,49 +270,84 @@ def compile(emitter: Emitter, node):
                 Div(left, right, type_) | Mod(left, right, type_):
             l = compile(emitter, left)
             r = compile(emitter, right)
-            tmp_ptr = "%" + emitter.get_temp()
+            pos_ptr = "%" + emitter.get_temp()
             operator = OPS[type(node)]
             llvm_type = TYPES[str(type_)]
-            emitter << f"\t{tmp_ptr} = {operator} {llvm_type} {l}, {r}"
-            return tmp_ptr
+            emitter << f"\t{pos_ptr} = {operator} {llvm_type} {l}, {r}"
+            return pos_ptr
         case Power(base, exponent, type_):
             b = compile(emitter, base)
             e = compile(emitter, exponent)
-            tmp_ptr = "%" + emitter.get_temp()
-            emitter << f"\t{tmp_ptr} = call i32 @power_int(i32 {b}, i32 {e})"
-            return tmp_ptr
+            pos_ptr = "%" + emitter.get_temp()
+            emitter << f"\t{pos_ptr} = call i32 @power_int(i32 {b}, i32 {e})"
+            return pos_ptr
         case Or(left, right)| And(left,right) :
             l = compile(emitter, left)
             r = compile(emitter, right)
 
             operator = OPS[type(node)]
-            tmp_ptr = "%" + emitter.get_temp()
-            emitter << f"\t{tmp_ptr} = {operator} i1 {l}, {r}"
-            return tmp_ptr
+            pos_ptr = "%" + emitter.get_temp()
+            emitter << f"\t{pos_ptr} = {operator} i1 {l}, {r}"
+            return pos_ptr
         case LogicNot(expr):
             compiled_expr = compile(emitter, expr)
-            tmp_ptr = "%" + emitter.get_temp()
-            emitter << f"\t{tmp_ptr} = xor i1 {compiled_expr}, 1"
-            return tmp_ptr
+            pos_ptr = "%" + emitter.get_temp()
+            emitter << f"\t{pos_ptr} = xor i1 {compiled_expr}, 1"
+            return pos_ptr
         case UnaryMinus(expr):
             compiled_expr = compile(emitter, expr)
-            tmp_ptr = "%" + emitter.get_temp()
-            emitter << f"\t{tmp_ptr} = sub i32 0, {compiled_expr}"
-            return tmp_ptr
+            pos_ptr = "%" + emitter.get_temp()
+            emitter << f"\t{pos_ptr} = sub i32 0, {compiled_expr}"
+            return pos_ptr
         case LessThan(left, right) | LessThanOrEqual(left, right) |\
                 GreaterThan(left, right) | GreaterThanOrEqual(left, right):
             l = compile(emitter, left)
             r = compile(emitter, right)
-            tmp_ptr = "%" + emitter.get_temp()
+            pos_ptr = "%" + emitter.get_temp()
             operator = OPS[type(node)]
-            emitter << f"\t{tmp_ptr} = icmp {operator} i32 {l}, {r}"
-            return tmp_ptr
+            emitter << f"\t{pos_ptr} = icmp {operator} i32 {l}, {r}"
+            return pos_ptr
+        case ArrayAccess(name, indexes, type_):
+            tmp_reg = "%" + emitter.get_temp()
+            pname = emitter.get_pointer_name(name)
+            
+            llvm_type = None
+            if isinstance(type_, ArrayType):
+                llvm_type = get_array_llvm_type(type_)
+            else:
+                llvm_type = TYPES[str(type_)]
+
+            stars = "*"
+            while isinstance(type_, ArrayType):
+                type_ = type_.type_
+                stars += "*"
+            
+
+            emitter << f"\t{tmp_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pname}"
+
+
+            for index in indexes:
+                index_value = compile(emitter, index)
+                pos_ptr = f"%{name}idx" + emitter.get_temp()
+                emitter << f"\t{pos_ptr} = getelementptr {llvm_type}, {llvm_type}* {tmp_reg}, i32 {index_value}"
+                tmp_reg = "%" + emitter.get_temp()
+                emitter << f"\t{tmp_reg} = load {llvm_type}, {llvm_type}* {pos_ptr}"
+            
+            return tmp_reg
+
+
+
         case Id(vname, type_):
-            reg = "%" + emitter.get_temp()
+            tmp_reg = "%" + emitter.get_temp()
             pname = emitter.get_pointer_name(vname)
-            llvm_type = TYPES[str(type_)]
-            emitter << f"\t{reg} = load {llvm_type}, {llvm_type}* {pname}"
-            return reg
+
+            llvm_type = None
+            if isinstance(type_, ArrayType):
+                llvm_type = get_array_llvm_type(type_)
+            else:
+                llvm_type = TYPES[str(type_)]
+            emitter << f"\t{tmp_reg} = load {llvm_type}, {llvm_type}* {pname}"
+            return tmp_reg
         case IntLit(value):
             return value
         case FloatLit(value):
