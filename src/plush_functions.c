@@ -10,6 +10,10 @@ void print_float(float x){
     printf("%f\n", x);
 }
 
+void print_string(char* s){
+    printf("%s\n", s);
+}
+
 int power_int(int base, int e){
     return pow(base,e);
 }

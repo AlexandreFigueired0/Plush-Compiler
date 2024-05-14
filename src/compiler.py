@@ -66,13 +66,6 @@ def first_traversal(emitter, node: Start):
             case VarDefinition(vname, type_, expr):
                 emitter.decl_var(vname)
 
-def get_array_llvm_type(type_):
-    stars = "*"
-    res_type = type_.type_
-    while isinstance(res_type, ArrayType):
-        stars += "*"
-        res_type = res_type.type_
-    return str(plush_type_to_llvm_type(res_type)) + stars
 
 from llvmlite import ir
 
@@ -83,6 +76,13 @@ float_type = ir.FloatType()
 def float_to_llvm(value):
     return ir.Constant(float_type, value).get_reference()
 
+def get_array_llvm_type(type_):
+    stars = "*"
+    res_type = type_.type_
+    while isinstance(res_type, ArrayType):
+        stars += "*"
+        res_type = res_type.type_
+    return str(plush_type_to_llvm_type(res_type)) + stars
 
 def plush_type_to_llvm_type(type_):
     if isinstance(type_, IntType):
@@ -90,9 +90,9 @@ def plush_type_to_llvm_type(type_):
     elif isinstance(type_, FloatType):
         return ir.FloatType()
     elif isinstance(type_, CharType):
-        return ir.IntType(8)
+        return ir.PointerType(ir.IntType(8))
     elif isinstance(type_, StringType):
-        return ir.IntType(8)
+        return ir.PointerType(ir.IntType(8))
     elif isinstance(type_, BooleanType):
         return ir.IntType(1)
     elif isinstance(type_, ArrayType):
@@ -123,13 +123,24 @@ def compile(emitter: Emitter, node):
             emitter << f"\t{pname} = alloca {llvm_type}"
 
             value = compile(emitter, expr)
-            emitter << f"\tstore {llvm_type} {value}, {llvm_type}* {pname}"
+
+            if isinstance(type_, StringType):
+                # expr is a String
+                str_len = len(expr.value) + 1
+                emitter << f"\tstore i8* getelementptr inbounds ([{str_len} x i8], [{str_len} x i8]* {value}, i64 0, i64 0), i8** {pname}"
+            else:
+                emitter << f"\tstore {llvm_type} {value}, {llvm_type}* {pname}"
         case Assignment(vname, expr):
             pname = emitter.get_pointer_name(vname)
-            value = compile(emitter, expr)
 
+            value = compile(emitter, expr)
             llvm_type = plush_type_to_llvm_type(expr.type_)
-            emitter << f"\tstore {llvm_type} {value}, {llvm_type}* {pname}"
+            if isinstance(expr.type_, StringType):
+                # expr is a String
+                str_len = len(expr.value) + 1
+                emitter << f"\tstore i8* getelementptr inbounds ([{str_len} x i8], [{str_len} x i8]* {value}, i64 0, i64 0), i8** {pname}"
+            else:
+                emitter << f"\tstore {llvm_type} {value}, {llvm_type}* {pname}"
         case ArrayPositionAssignment(name, indexes, expr):
             tmp_reg = "%" + emitter.get_temp()
             pname = emitter.get_pointer_name(name)
@@ -350,7 +361,11 @@ def compile(emitter: Emitter, node):
         case CharLit(value):
             return value
         case String(value):
-            return value
+            id = emitter.get_count()
+            str_name = f"@.pl_str_{id}"
+            str_decl = f"""{str_name} = private unnamed_addr constant [{len(value)+1} x i8] c"{value}\\00" """
+            emitter.lines.insert(0, str_decl)
+            return str_name
         case BooleanLit(value):
             return value
         
@@ -371,7 +386,7 @@ if __name__ == "__main__":
     # /usr/local/opt/llvm/bin/lli code.ll
     r = subprocess.call(
         # "llc code.ll && clang code.s -o code -no-pie && ./code",
-        f"llc code.ll && gcc -c plush_functions.c && clang code.s plush_functions.o {lib_flags} -o code && ./code",
+        f"llc code.ll && gcc -c plush_functions.c && clang code.s plush_functions.o {lib_flags} -o code -no-pie && ./code",
         # "lli code.ll",
         shell=True,
     )

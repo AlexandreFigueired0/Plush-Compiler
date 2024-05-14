@@ -150,10 +150,10 @@ class PlushTree(Transformer):
         return BooleanLit(value)
     
     def char_lit(self, value):
-        return CharLit(value)
+        return CharLit(value[1:-1]) # remove quotes
     
     def string(self, value):
-        return String(value)
+        return String(value[1:-1]) # remove quotes
     
     # TYPES
 
