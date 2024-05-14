@@ -1,15 +1,6 @@
 from ast_nodes import *
 from type_checker import type_check_program
 
-TYPES = {
-    "int": "i32",
-    "float": "f32",
-    "char": "i8",
-    "string": "i8",
-    "boolean": "i1",
-    "None": "void"
-}
-
 OPS = {  
     Add: "add",
     Sub: "sub",
@@ -81,7 +72,35 @@ def get_array_llvm_type(type_):
     while isinstance(res_type, ArrayType):
         stars += "*"
         res_type = res_type.type_
-    return f"{TYPES[str(res_type)]}{stars}" 
+    return str(plush_type_to_llvm_type(res_type)) + stars
+
+from llvmlite import ir
+
+# Create an LLVM float type
+float_type = ir.FloatType()
+
+# Convert float literals to LLVM float constants
+def float_to_llvm(value):
+    return ir.Constant(float_type, value).get_reference()
+
+
+def plush_type_to_llvm_type(type_):
+    if isinstance(type_, IntType):
+        return ir.IntType(32)
+    elif isinstance(type_, FloatType):
+        return ir.FloatType()
+    elif isinstance(type_, CharType):
+        return ir.IntType(8)
+    elif isinstance(type_, StringType):
+        return ir.IntType(8)
+    elif isinstance(type_, BooleanType):
+        return ir.IntType(1)
+    elif isinstance(type_, ArrayType):
+        return get_array_llvm_type(type_)
+    elif not type_:
+        return ir.VoidType()
+    else:
+        raise ValueError(f"Unknown type {type_}")
 
 def compile(emitter: Emitter, node):
     # first_traversal(emitter, node)
@@ -99,10 +118,7 @@ def compile(emitter: Emitter, node):
         case ValDefinition(vname, type_, expr) | VarDefinition(vname, type_, expr):
             emitter.decl_var(vname)
 
-            if isinstance(type_, ArrayType):
-                llvm_type = get_array_llvm_type(type_)
-            else:
-                llvm_type = TYPES[str(type_)]
+            llvm_type = plush_type_to_llvm_type(type_)
             pname = emitter.get_pointer_name(vname)
             emitter << f"\t{pname} = alloca {llvm_type}"
 
@@ -112,11 +128,7 @@ def compile(emitter: Emitter, node):
             pname = emitter.get_pointer_name(vname)
             value = compile(emitter, expr)
 
-            llvm_type = None
-            if isinstance(expr.type_, ArrayType):
-                llvm_type = get_array_llvm_type(expr.type_)
-            else:
-                llvm_type = TYPES[str(expr.type_)]
+            llvm_type = plush_type_to_llvm_type(expr.type_)
             emitter << f"\tstore {llvm_type} {value}, {llvm_type}* {pname}"
         case ArrayPositionAssignment(name, indexes, expr):
             tmp_reg = "%" + emitter.get_temp()
@@ -128,11 +140,7 @@ def compile(emitter: Emitter, node):
                 type_ = type_.type_
                 stars += "*"
 
-            llvm_type = None
-            if isinstance(expr.type_, ArrayType):
-                llvm_type = get_array_llvm_type(expr.type_)
-            else:
-                llvm_type = TYPES[str(expr.type_)]
+            llvm_type = plush_type_to_llvm_type(type_)
 
             emitter << f"\t{tmp_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pname}"
 
@@ -203,12 +211,9 @@ def compile(emitter: Emitter, node):
 
         case FunctionCall(name, args, type_):
             args_compiled = [(compile(emitter, arg),arg.type_) for arg in args]
-            llvm_type = None
-            if isinstance(type_, ArrayType):
-                llvm_type = get_array_llvm_type(type_)
-            else:
-                llvm_type = TYPES[str(type_)]
-            llvm_concrete_types = [ f"{TYPES[str(type_)]}  {reg}" for reg, type_ in args_compiled]
+            
+            llvm_type = plush_type_to_llvm_type(type_)
+            llvm_concrete_types = [ f"{plush_type_to_llvm_type(type_)}  {reg}" for reg, type_ in args_compiled]
             
             tmp_reg = ""
             
@@ -223,22 +228,18 @@ def compile(emitter: Emitter, node):
             pass
         case FunctionDefinition(fname, params, type_, block):
             emitter.enter_block()
-            llvm_params = ", ".join([f"{TYPES[str(param.type_)]} %{param.name}" for param in params])
+            llvm_params = ", ".join([f"{plush_type_to_llvm_type(param.type_)} %{param.name}" for param in params])
             param_allocation = []
             param_load = []
 
-            return_type = None
-            if isinstance(type_, ArrayType):
-                return_type = get_array_llvm_type(type_)
-            else:
-                return_type = TYPES[str(type_)]
+            return_type = plush_type_to_llvm_type(type_)
             emitter << f"define {return_type} @{fname}({llvm_params}) {{"
 
             # TODO: Add params
             for param in params:
                 param_name, ptype_ = param.name, param.type_
                 emitter.decl_var(param_name)
-                llvm_type = TYPES[str(ptype_)]
+                llvm_type = plush_type_to_llvm_type(ptype_)
                 pname = emitter.get_pointer_name(param_name)
                 param_allocation.append(f"\t{pname} = alloca {llvm_type}")
                 param_load.append(f"\tstore {llvm_type} %{param_name}, {llvm_type}* {pname}")
@@ -272,7 +273,11 @@ def compile(emitter: Emitter, node):
             r = compile(emitter, right)
             pos_ptr = "%" + emitter.get_temp()
             operator = OPS[type(node)]
-            llvm_type = TYPES[str(type_)]
+            llvm_type = plush_type_to_llvm_type(type_)
+
+            if isinstance(type_, FloatType):
+                operator = "f" + operator
+
             emitter << f"\t{pos_ptr} = {operator} {llvm_type} {l}, {r}"
             return pos_ptr
         case Power(base, exponent, type_):
@@ -311,11 +316,7 @@ def compile(emitter: Emitter, node):
             tmp_reg = "%" + emitter.get_temp()
             pname = emitter.get_pointer_name(name)
             
-            llvm_type = None
-            if isinstance(type_, ArrayType):
-                llvm_type = get_array_llvm_type(type_)
-            else:
-                llvm_type = TYPES[str(type_)]
+            llvm_type = plush_type_to_llvm_type(type_)
 
             stars = "*"
             while isinstance(type_, ArrayType):
@@ -335,23 +336,17 @@ def compile(emitter: Emitter, node):
             
             return tmp_reg
 
-
-
         case Id(vname, type_):
             tmp_reg = "%" + emitter.get_temp()
             pname = emitter.get_pointer_name(vname)
 
-            llvm_type = None
-            if isinstance(type_, ArrayType):
-                llvm_type = get_array_llvm_type(type_)
-            else:
-                llvm_type = TYPES[str(type_)]
+            llvm_type = plush_type_to_llvm_type(type_)
             emitter << f"\t{tmp_reg} = load {llvm_type}, {llvm_type}* {pname}"
             return tmp_reg
         case IntLit(value):
             return value
         case FloatLit(value):
-            return value
+            return float_to_llvm(float(value))
         case CharLit(value):
             return value
         case String(value):
@@ -381,3 +376,4 @@ if __name__ == "__main__":
         shell=True,
     )
     print()
+

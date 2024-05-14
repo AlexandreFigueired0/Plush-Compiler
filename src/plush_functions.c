@@ -6,6 +6,10 @@ void print_int(int x){
     printf("%d\n", x);
 }
 
+void print_float(float x){
+    printf("%f\n", x);
+}
+
 int power_int(int base, int e){
     return pow(base,e);
 }
