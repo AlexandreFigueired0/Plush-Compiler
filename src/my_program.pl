@@ -1,11 +1,9 @@
 # function print_int(val x : int); # FFI
 
 function main() {
-    var s : string := "Hello World!";
-    s := "Bye";
-    val hello : string := "Hello World!"; # val is a constant
-    print_string(hello);
-    print_string(s);
+    val a : [int] := get_int_array(12);
+    a[4] := -2;
+    print_int(a[4]);
 }
 
 

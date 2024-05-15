@@ -53,6 +53,16 @@ class Emitter(object):
                 return f"%{vname}{ctx[vname]}"
         raise ValueError(f"Variable {vname} not found in context")
     
+    def get_llvm_code_to_store(self,expr, pname, llvm_type):
+        compiled_expr = compile(self, expr)
+        match expr.type_:
+            case StringType():
+                # expr is a String
+                str_len = len(expr.value) + 1
+                return f"\tstore i8* getelementptr inbounds ([{str_len} x i8], [{str_len} x i8]* {compiled_expr}, i64 0, i64 0), i8** {pname}"
+            case _:
+                return f"\tstore {llvm_type} {compiled_expr}, {llvm_type}* {pname}"
+    
     def has_string(self, value):
         return value in self.strings
     
@@ -84,12 +94,9 @@ def first_traversal(emitter, node: Start):
 
 from llvmlite import ir
 
-# Create an LLVM float type
-float_type = ir.FloatType()
-
-# Convert float literals to LLVM float constants
 def float_to_llvm(value):
-    return ir.Constant(float_type, value).get_reference()
+    """ Convert float literals to LLVM float constants """
+    return ir.Constant(ir.FloatType(), value).get_reference()
 
 def get_array_llvm_type(type_):
     stars = "*"
@@ -117,6 +124,8 @@ def plush_type_to_llvm_type(type_):
     else:
         raise ValueError(f"Unknown type {type_}")
 
+
+
 def compile(emitter: Emitter, node):
     # first_traversal(emitter, node)
     # assert len(emitter.context) == 1
@@ -139,25 +148,12 @@ def compile(emitter: Emitter, node):
             pname = emitter.get_pointer_name(vname)
             emitter << f"\t{pname} = alloca {llvm_type}"
 
-            value = compile(emitter, expr)
-
-            if isinstance(type_, StringType):
-                # expr is a String
-                str_len = len(expr.value) + 1
-                emitter << f"\tstore i8* getelementptr inbounds ([{str_len} x i8], [{str_len} x i8]* {value}, i64 0, i64 0), i8** {pname}"
-            else:
-                emitter << f"\tstore {llvm_type} {value}, {llvm_type}* {pname}"
+            emitter << emitter.get_llvm_code_to_store(expr, pname, llvm_type)
         case Assignment(vname, expr):
             pname = emitter.get_pointer_name(vname)
-
-            value = compile(emitter, expr)
             llvm_type = plush_type_to_llvm_type(expr.type_)
-            if isinstance(expr.type_, StringType):
-                # expr is a String
-                str_len = len(expr.value) + 1
-                emitter << f"\tstore i8* getelementptr inbounds ([{str_len} x i8], [{str_len} x i8]* {value}, i64 0, i64 0), i8** {pname}"
-            else:
-                emitter << f"\tstore {llvm_type} {value}, {llvm_type}* {pname}"
+
+            emitter << emitter.get_llvm_code_to_store(expr, pname, llvm_type)
         case ArrayPositionAssignment(name, indexes, expr):
             tmp_reg = "%" + emitter.get_temp()
             pname = emitter.get_pointer_name(name)
@@ -172,13 +168,12 @@ def compile(emitter: Emitter, node):
 
             emitter << f"\t{tmp_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pname}"
 
-            expr_value = compile(emitter, expr)
             for index in indexes:
                 index_value = compile(emitter, index)
                 pos_ptr = f"%{name}idx" + emitter.get_temp()
                 emitter << f"\t{pos_ptr} = getelementptr {llvm_type}, {llvm_type}* {tmp_reg}, i32 {index_value}"
                 tmp_reg = "%" + emitter.get_temp()
-                emitter << f"\tstore {llvm_type} {expr_value}, {llvm_type}* {pos_ptr}"
+                emitter << emitter.get_llvm_code_to_store(expr, pos_ptr, llvm_type)
         case If(cond, block):
             compiled_cond  = compile(emitter, cond)
             then_count = emitter.get_count()
@@ -258,7 +253,7 @@ def compile(emitter: Emitter, node):
             emitter.enter_block()
             llvm_params = ", ".join([f"{plush_type_to_llvm_type(param.type_)} %{param.name}" for param in params])
             param_allocation = []
-            param_load = []
+            param_store = []
 
             return_type = plush_type_to_llvm_type(type_)
             emitter << f"define {return_type} @{fname}({llvm_params}) {{"
@@ -270,7 +265,7 @@ def compile(emitter: Emitter, node):
                 llvm_type = plush_type_to_llvm_type(ptype_)
                 pname = emitter.get_pointer_name(param_name)
                 param_allocation.append(f"\t{pname} = alloca {llvm_type}")
-                param_load.append(f"\tstore {llvm_type} %{param_name}, {llvm_type}* {pname}")
+                param_store.append(f"\tstore {llvm_type} %{param_name}, {llvm_type}* {pname}")
             
             if type_:
                 # Add return assign
@@ -279,7 +274,7 @@ def compile(emitter: Emitter, node):
                 emitter << f"\t{ret_pname} = alloca {return_type}"
             if len(params) > 0:
                 emitter << "\n".join(param_allocation)
-                emitter << "\n".join(param_load)
+                emitter << "\n".join(param_store)
 
             
             for stmt in block:
@@ -380,7 +375,7 @@ def compile(emitter: Emitter, node):
                 return emitter.get_string_reg(value)
 
             id = emitter.get_count()
-            str_name = f"@pl_str_{id}"
+            str_name = f"@.pl_str_{id}"
             str_decl = f"""{str_name} = private unnamed_addr constant [{len(value)+1} x i8] c"{value}\\00" """
             emitter.lines.insert(0, str_decl)
             emitter.add_string(value, str_name)

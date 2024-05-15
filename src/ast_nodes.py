@@ -233,6 +233,7 @@ class UnaryMinus(Expression):
 @dataclass
 class LogicNot(Expression):
     expr: Expression
+    type_ = BooleanType()
 
 
 @dataclass
