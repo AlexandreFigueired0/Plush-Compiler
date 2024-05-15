@@ -36,6 +36,9 @@ class Emitter(object):
     def get_count(self):
         self.count += 1
         return self.count
+    
+    def is_in_global_context(self):
+        return len(self.context) == 1
 
     def get_temp(self):
         id = self.get_count()
@@ -48,9 +51,10 @@ class Emitter(object):
         return "\n".join(self.lines)
 
     def get_pointer_name(self, vname):
-        for ctx in reversed(self.context):
+        for i,ctx in enumerate(reversed(self.context)):
             if vname in ctx:
-                return f"%{vname}{ctx[vname]}"
+                ref = "@" if i == (len(self.context)-1) else "%"
+                return f"{ref}{vname}{ctx[vname]}"
         raise ValueError(f"Variable {vname} not found in context")
     
     def get_llvm_code_to_store(self,expr, pname, llvm_type):
@@ -89,7 +93,13 @@ def first_traversal(emitter, node: Start):
                 llvm_type = plush_type_to_llvm_type(type_)
                 pname = emitter.get_pointer_name(vname)
                 val = compile(emitter, expr)
-                emitter << f"@{pname} = dso_local global {llvm_type} {val}"
+
+                if isinstance(type_, StringType):
+                    str_reg = emitter.get_string_reg(expr.value)
+                    str_len = len(expr.value) + 1
+                    emitter << f"{pname} = dso_local global i8* getelementptr inbounds ([{str_len} x i8], [{str_len} x i8]* {str_reg}, i32 0, i32 0)"
+                else:
+                    emitter << f"{pname} = dso_local global {llvm_type} {val}"
 
 
 from llvmlite import ir
@@ -131,10 +141,10 @@ def compile(emitter: Emitter, node):
     # assert len(emitter.context) == 1
     match node:
         case Start( defs_or_decls ):
+            first_traversal(emitter, node)
             predef_funcs_file = open("../pre_def_funcs.ll", "r")
             emitter << predef_funcs_file.read()
             
-            first_traversal(emitter, node)
 
             for def_or_decl in defs_or_decls:
                 compile(emitter, def_or_decl)
@@ -142,6 +152,8 @@ def compile(emitter: Emitter, node):
             return emitter.get_code()
         
         case ValDefinition(vname, type_, expr) | VarDefinition(vname, type_, expr):
+            if emitter.is_in_global_context(): return
+
             emitter.decl_var(vname)
 
             llvm_type = plush_type_to_llvm_type(type_)
