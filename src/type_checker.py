@@ -36,6 +36,7 @@ class Context():
 def add_pre_def_funcs(ctx: Context):
     ctx.set_type("print_int", ("print_int",[ValParam(name="x", type_ = IntType())],None), False)
     ctx.set_type("print_float", ("print_float",[ValParam(name="x", type_ = FloatType())],None), False)
+    ctx.set_type("print_boolean", ("print_boolean",[ValParam(name="x", type_ = BooleanType())],None), False)
     ctx.set_type("print_string", ("print_string",[ValParam(name="s", type_ = StringType())],None), False)
     ctx.set_type("power_int", ("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],None), False)
     ctx.set_type("get_int_array", ("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType())), False)

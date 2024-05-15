@@ -340,7 +340,8 @@ def compile(emitter: Emitter, node):
             emitter << f"\t{pos_ptr} = sub i32 0, {compiled_expr}"
             return pos_ptr
         case LessThan(left, right) | LessThanOrEqual(left, right) |\
-                GreaterThan(left, right) | GreaterThanOrEqual(left, right):
+                GreaterThan(left, right) | GreaterThanOrEqual(left, right) |\
+                Equal(left, right) | NotEqual(left, right):
             l = compile(emitter, left)
             r = compile(emitter, right)
             pos_ptr = "%" + emitter.get_temp()

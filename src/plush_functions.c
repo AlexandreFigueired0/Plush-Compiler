@@ -14,6 +14,14 @@ void print_string(char* s){
     printf("%s\n", s);
 }
 
+void print_boolean(int x){
+    if(x){
+        printf("true\n");
+    }else{
+        printf("false\n");
+    }
+}
+
 int power_int(int base, int e){
     return pow(base,e);
 }
