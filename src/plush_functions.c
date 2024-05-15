@@ -28,6 +28,10 @@ int power_int(int base, int e){
 
 int* get_int_array(int size){
     return malloc(size * sizeof(int));
-   
 }
+
+int** get_int_matrix(int row, int col){
+    return malloc(row * col * sizeof(int));
+}
+
 

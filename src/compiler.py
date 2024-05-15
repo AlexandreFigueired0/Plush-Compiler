@@ -354,19 +354,22 @@ def compile(emitter: Emitter, node):
             
             llvm_type = plush_type_to_llvm_type(type_)
 
-            stars = "*"
+            stars = "*" * len(indexes)
             while isinstance(type_, ArrayType):
                 type_ = type_.type_
                 stars += "*"
+            array_type = f"{llvm_type}{stars}"
+            emitter << f"\t{tmp_reg} = load {array_type}, {array_type}* {pname}"
 
-            emitter << f"\t{tmp_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pname}"
+            # N stars reduces from n to 1
 
             for index in indexes:
+                stars = stars[0:-1]
                 index_value = compile(emitter, index)
                 pos_ptr = f"%{name}idx" + emitter.get_temp()
-                emitter << f"\t{pos_ptr} = getelementptr {llvm_type}, {llvm_type}* {tmp_reg}, i32 {index_value}"
+                emitter << f"\t{pos_ptr} = getelementptr {llvm_type}{stars}, {llvm_type}{stars}* {tmp_reg}, i32 {index_value}"
                 tmp_reg = "%" + emitter.get_temp()
-                emitter << f"\t{tmp_reg} = load {llvm_type}, {llvm_type}* {pos_ptr}"
+                emitter << f"\t{tmp_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pos_ptr}"
             
             return tmp_reg
 
