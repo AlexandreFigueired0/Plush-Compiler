@@ -27,6 +27,9 @@ class Emitter(object):
         # will contain the id of the var in this scope
         self.context = [{}]
 
+        # will cotain the register name for the static strings
+        self.strings = {}
+
     def decl_var(self, name):
         self.context[-1][name] = self.get_count()
 
@@ -50,6 +53,15 @@ class Emitter(object):
                 return f"%{vname}{ctx[vname]}"
         raise ValueError(f"Variable {vname} not found in context")
     
+    def has_string(self, value):
+        return value in self.strings
+    
+    def get_string_reg(self, value):
+        return self.strings[value]
+    
+    def add_string(self, value, reg):
+        self.strings[value] = reg
+    
     def enter_block(self):
         self.context.append({})
     
@@ -59,12 +71,15 @@ class Emitter(object):
 def first_traversal(emitter, node: Start):
     """
     This function is used to declare all variables and functions in the global scope.
-    Also, it will declare all strings and arrays used in the program.
     """
     for global_node in node.defs_or_decls:
         match global_node:
-            case VarDefinition(vname, type_, expr):
+            case VarDefinition(vname, type_, expr) | ValDefinition(vname, type_, expr):
                 emitter.decl_var(vname)
+                llvm_type = plush_type_to_llvm_type(type_)
+                pname = emitter.get_pointer_name(vname)
+                val = compile(emitter, expr)
+                emitter << f"@{pname} = dso_local global {llvm_type} {val}"
 
 
 from llvmlite import ir
@@ -110,6 +125,8 @@ def compile(emitter: Emitter, node):
             predef_funcs_file = open("../pre_def_funcs.ll", "r")
             emitter << predef_funcs_file.read()
             
+            first_traversal(emitter, node)
+
             for def_or_decl in defs_or_decls:
                 compile(emitter, def_or_decl)
 
@@ -333,10 +350,8 @@ def compile(emitter: Emitter, node):
             while isinstance(type_, ArrayType):
                 type_ = type_.type_
                 stars += "*"
-            
 
             emitter << f"\t{tmp_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pname}"
-
 
             for index in indexes:
                 index_value = compile(emitter, index)
@@ -361,10 +376,14 @@ def compile(emitter: Emitter, node):
         case CharLit(value):
             return value
         case String(value):
+            if emitter.has_string(value):
+                return emitter.get_string_reg(value)
+
             id = emitter.get_count()
-            str_name = f"@.pl_str_{id}"
+            str_name = f"@pl_str_{id}"
             str_decl = f"""{str_name} = private unnamed_addr constant [{len(value)+1} x i8] c"{value}\\00" """
             emitter.lines.insert(0, str_decl)
+            emitter.add_string(value, str_name)
             return str_name
         case BooleanLit(value):
             return value
