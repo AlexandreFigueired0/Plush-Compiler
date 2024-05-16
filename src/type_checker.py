@@ -40,6 +40,7 @@ def add_pre_def_funcs(ctx: Context):
     ctx.set_type("print_string", ("print_string",[ValParam(name="s", type_ = StringType())],None), False)
     ctx.set_type("power_int", ("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],None), False)
     ctx.set_type("get_int_array", ("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType())), False)
+    ctx.set_type("get_string_array", ("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType())), False)
     ctx.set_type("get_int_matrix", ("get_int_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(IntType()))), False)
 
 def gather_global_vars_and_funcs(ctx: Context, node):
@@ -188,19 +189,24 @@ def type_check(ctx : Context, node) -> bool:
             if expr_type != BooleanType():
                 raise TypeError(f"Type mismatch in {node}, operand must be of type boolean but found {expr_type}")
             return BooleanType()
-        
-        case ArrayAccess(name, indexes):
-            if not ctx.has_var(name):
-                raise TypeError(f"Variable {name} doesn't exist")
             
-            var_type,_ = ctx.get_type(name)
+        case ArrayAccess(name, indexes) | FunctionCallArrayAccess(name, indexes):
+            res_type = None
+            if isinstance(name, FunctionCall):
+                if not ctx.has_var(name.name):
+                    raise TypeError(f"Function {name.name} doesn't exist")
 
-            #TODO: check if its a variable or a function call
-            if isinstance(var_type, tuple):
-                var_type = var_type[-1]
-            
-            #TODO: Check if the indexes are valid and go deeper in the type
-            res_type = var_type
+                res_type = type_check(ctx, name)
+            else:
+
+                if not ctx.has_var(name):
+                    raise TypeError(f"Variable {name} doesn't exist")
+                
+                var_type,_ = ctx.get_type(name)
+
+                res_type = var_type
+
+            #Check if the indexes are valid and go deeper in the type
             for index in indexes:
                 index_type = type_check(ctx, index)
                 if index_type != IntType():

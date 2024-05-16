@@ -243,6 +243,12 @@ class ArrayAccess(Expression):
     type_: Type = None
 
 @dataclass
+class FunctionCallArrayAccess(Expression):
+    fcall: FunctionCall
+    indexes: list[Expression]
+    type_: Type = None
+
+@dataclass
 class Id(Expression):
     name: str
     type_: Type = None

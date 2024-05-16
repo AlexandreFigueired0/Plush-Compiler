@@ -30,6 +30,11 @@ int* get_int_array(int size){
     return malloc(size * sizeof(int));
 }
 
+char** get_string_array(int size){
+    return malloc(size * sizeof(char*));
+}
+
+
 int** get_int_matrix(int row, int col){
     int** matrix = (int**)malloc(row * sizeof(int*));
     for(int i = 0; i < row; i++){

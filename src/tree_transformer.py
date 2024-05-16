@@ -132,10 +132,10 @@ class PlushTree(Transformer):
     def not_(self, expr):
         return LogicNot(expr)
     
-    def array_access(self, name, *indexes):
-        if isinstance(name, FunctionCall):
-            name = name.name
-        return ArrayAccess(name, indexes)
+    def array_access(self, name_or_fcall, *indexes):
+        if not isinstance(name_or_fcall, str):
+            return FunctionCallArrayAccess(name_or_fcall, indexes)
+        return ArrayAccess(name_or_fcall, indexes)
 
     def id(self, name):
         return Id(name)
