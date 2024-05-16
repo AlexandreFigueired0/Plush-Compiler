@@ -131,7 +131,7 @@ def plush_type_to_llvm_type(type_):
     elif isinstance(type_, FloatType):
         return ir.FloatType()
     elif isinstance(type_, CharType):
-        return ir.PointerType(ir.IntType(8))
+        return ir.IntType(8)
     elif isinstance(type_, StringType):
         return ir.PointerType(ir.IntType(8))
     elif isinstance(type_, BooleanType):
@@ -419,7 +419,7 @@ def compile(emitter: Emitter, node):
         case FloatLit(value):
             return float_to_llvm(float(value))
         case CharLit(value):
-            return value
+            return ord(value)
         case String(value):
             if emitter.has_string(value):
                 return emitter.get_string_reg(value)
