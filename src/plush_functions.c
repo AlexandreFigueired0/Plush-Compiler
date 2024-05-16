@@ -14,6 +14,17 @@ void print_string(char* s){
     printf("%s\n", s);
 }
 
+void print_char(char c){
+    printf("%c\n", c);
+}
+
+void print_int_array(int* arr, int size){
+    for(int i = 0; i < size; i++){
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+}
+
 void print_boolean(int x){
     if(x){
         printf("true\n");

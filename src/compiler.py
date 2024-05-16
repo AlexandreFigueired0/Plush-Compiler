@@ -118,8 +118,8 @@ def float_to_llvm(value):
     return ir.Constant(ir.FloatType(), value).get_reference()
 
 def get_array_llvm_type(type_):
-    stars = "*"
-    res_type = type_.type_
+    stars = ""
+    res_type = type_
     while isinstance(res_type, ArrayType):
         stars += "*"
         res_type = res_type.type_
@@ -190,11 +190,15 @@ def compile(emitter: Emitter, node):
             emitter << f"\t{array_pos_val_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pname}"
 
             for index in indexes:
+                stars = stars[0:-1]
                 index_value = compile(emitter, index)
                 pos_ptr = f"%{name}idx" + emitter.get_temp()
-                emitter << f"\t{pos_ptr} = getelementptr {llvm_type}, {llvm_type}* {array_pos_val_reg}, i32 {index_value}"
+                emitter << f"\t{pos_ptr} = getelementptr {llvm_type}{stars}, {llvm_type}{stars}* {array_pos_val_reg}, i32 {index_value}"
                 array_pos_val_reg = "%" + emitter.get_temp()
-                emitter << emitter.get_llvm_code_to_store(expr, pos_ptr, llvm_type)
+                emitter << f"\t{array_pos_val_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pos_ptr}"
+            
+            emitter << emitter.get_llvm_code_to_store(expr, pos_ptr, llvm_type)
+
         case If(cond, block):
             compiled_cond  = compile(emitter, cond)
             then_count = emitter.get_count()
@@ -377,9 +381,10 @@ def compile(emitter: Emitter, node):
 
             if isinstance(node, ArrayAccess):
                 pname = emitter.get_pointer_name(name)
-                while isinstance(type_, ArrayType):
+                if isinstance(type_, ArrayType):
                     type_ = type_.type_
-                    stars += "*"
+                    while isinstance(type_, ArrayType):
+                        stars += "*"
                 array_pos_val_reg = "%" + emitter.get_temp()
                 array_type = f"{llvm_type}{stars}"
                 emitter << f"\t{array_pos_val_reg} = load {array_type}, {array_type}* {pname}"
