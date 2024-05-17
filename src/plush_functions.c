@@ -71,6 +71,10 @@ int power_int(int base, int e){
     return pow(base,e);
 }
 
+float power_float(float base, float e){
+    return pow(base,e);
+}
+
 int* get_int_array(int size){
     return malloc(size * sizeof(int));
 }
@@ -111,9 +115,9 @@ float** get_float_matrix(int row, int col){
 }
 
 char*** get_string_matrix(int row, int col){
-    char** matrix = (char**)malloc(row * sizeof(char*));
+    char*** matrix = (char***)malloc(row * sizeof(char**));
     for(int i = 0; i < row; i++){
-        matrix[i] = (char*)malloc(col * sizeof(char));
+        matrix[i] = (char**)malloc(col * sizeof(char*));
     }
     return matrix;
 }

@@ -176,7 +176,7 @@ def compile(emitter: Emitter, node):
 
             emitter << emitter.get_llvm_code_to_store(expr, pname, llvm_type)
         case ArrayPositionAssignment(name, indexes, expr):
-            array_pos_val_reg = "%" + emitter.get_temp()
+            array_ptr = "%" + emitter.get_temp()
             pname = emitter.get_pointer_name(name)
 
             stars = "*" * len(indexes)
@@ -187,15 +187,15 @@ def compile(emitter: Emitter, node):
 
             llvm_type = plush_type_to_llvm_type(type_)
 
-            emitter << f"\t{array_pos_val_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pname}"
+            emitter << f"\t{array_ptr} = load {llvm_type}{stars}, {llvm_type}{stars}* {pname}"
 
             for index in indexes:
                 stars = stars[0:-1]
                 index_value = compile(emitter, index)
-                pos_ptr = f"%{name}idx" + emitter.get_temp()
-                emitter << f"\t{pos_ptr} = getelementptr {llvm_type}{stars}, {llvm_type}{stars}* {array_pos_val_reg}, i32 {index_value}"
-                array_pos_val_reg = "%" + emitter.get_temp()
-                emitter << f"\t{array_pos_val_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pos_ptr}"
+                pos_ptr = f"%{name}_idx_{emitter.get_count()}"
+                emitter << f"\t{pos_ptr} = getelementptr {llvm_type}{stars}, {llvm_type}{stars}* {array_ptr}, i32 {index_value}"
+                array_ptr = "%" + emitter.get_temp()
+                emitter << f"\t{array_ptr} = load {llvm_type}{stars}, {llvm_type}{stars}* {pos_ptr}"
             
             emitter << emitter.get_llvm_code_to_store(expr, pos_ptr, llvm_type)
 
@@ -261,13 +261,14 @@ def compile(emitter: Emitter, node):
             args_compiled = []
 
             for arg in args:
+                # If the argument is a string, we need to create a pointer to it
                 if isinstance(arg, String):
                     str_name = compile(emitter, arg)
                     temp_reg = "%" + emitter.get_temp()
                     emitter << f"\t{temp_reg} = alloca i8*"
                     str_len = len(arg.value) + 1
                     emitter << f"\tstore i8* getelementptr inbounds ([{str_len} x i8], [{str_len} x i8]* {str_name}, i64 0, i64 0), i8** {temp_reg}"
-                    ret_reg = "%" + emitter.get_temp()
+                    ret_reg = f"%" + emitter.get_temp()
                     emitter << f"\t{ret_reg} = load i8*, i8** {temp_reg}"
                     args_compiled.append((ret_reg, StringType()))
                 else:
@@ -276,14 +277,15 @@ def compile(emitter: Emitter, node):
             llvm_type = plush_type_to_llvm_type(type_)
             llvm_concrete_types = [ f"{plush_type_to_llvm_type(type_)}  {reg}" for reg, type_ in args_compiled]
             
-            array_pos_val_reg = ""
+            call_ret_reg = ""
+            llvm_function_call = f"call {llvm_type} @{name}( {', '.join(llvm_concrete_types)} )"
             
             if type_:
-                array_pos_val_reg = "%" + emitter.get_temp()
-                emitter << f"\t{array_pos_val_reg} = call {llvm_type} @{name}( {', '.join(llvm_concrete_types)} )"
+                call_ret_reg = f"%{name}_{emitter.get_count()}"
+                emitter << f"\t{call_ret_reg} = {llvm_function_call}"
             else:
-                emitter << f"\tcall {llvm_type} @{name}( {', '.join(llvm_concrete_types)} )"
-            return array_pos_val_reg
+                emitter << f"\t{llvm_function_call}"
+            return call_ret_reg
         case FunctionDeclaration(name, params, type_):
             #TODO: pass?
             pass
@@ -332,52 +334,56 @@ def compile(emitter: Emitter, node):
                 Div(left, right, type_) | Mod(left, right, type_):
             l = compile(emitter, left)
             r = compile(emitter, right)
-            pos_ptr = "%" + emitter.get_temp()
+            ret_reg = "%" + emitter.get_temp()
             operator = OPS[type(node)]
             llvm_type = plush_type_to_llvm_type(type_)
 
             if isinstance(type_, FloatType):
                 operator = "f" + operator
 
-            emitter << f"\t{pos_ptr} = {operator} {llvm_type} {l}, {r}"
-            return pos_ptr
+            emitter << f"\t{ret_reg} = {operator} {llvm_type} {l}, {r}"
+            return ret_reg
         case Power(base, exponent, type_):
             b = compile(emitter, base)
             e = compile(emitter, exponent)
-            pos_ptr = "%" + emitter.get_temp()
-            emitter << f"\t{pos_ptr} = call i32 @power_int(i32 {b}, i32 {e})"
-            return pos_ptr
+            ret_reg = "%" + emitter.get_temp()
+
+            if isinstance(type_, FloatType):
+                emitter << f"\t{ret_reg} = call float @power_float(float {b}, float {e})"
+            else:
+                emitter << f"\t{ret_reg} = call i32 @power_int(i32 {b}, i32 {e})"
+            return ret_reg
         case Or(left, right)| And(left,right) :
             l = compile(emitter, left)
             r = compile(emitter, right)
 
             operator = OPS[type(node)]
-            pos_ptr = "%" + emitter.get_temp()
-            emitter << f"\t{pos_ptr} = {operator} i1 {l}, {r}"
-            return pos_ptr
+            ret_reg = "%" + emitter.get_temp()
+            emitter << f"\t{ret_reg} = {operator} i1 {l}, {r}"
+            return ret_reg
         case LogicNot(expr):
             compiled_expr = compile(emitter, expr)
-            pos_ptr = "%" + emitter.get_temp()
-            emitter << f"\t{pos_ptr} = xor i1 {compiled_expr}, 1"
-            return pos_ptr
+            ret_reg = "%" + emitter.get_temp()
+            emitter << f"\t{ret_reg} = xor i1 {compiled_expr}, 1"
+            return ret_reg
         case UnaryMinus(expr):
             compiled_expr = compile(emitter, expr)
-            pos_ptr = "%" + emitter.get_temp()
-            emitter << f"\t{pos_ptr} = sub i32 0, {compiled_expr}"
-            return pos_ptr
+            ret_reg = "%" + emitter.get_temp()
+            emitter << f"\t{ret_reg} = sub i32 0, {compiled_expr}"
+            return ret_reg
         case LessThan(left, right) | LessThanOrEqual(left, right) |\
                 GreaterThan(left, right) | GreaterThanOrEqual(left, right) |\
                 Equal(left, right) | NotEqual(left, right):
             l = compile(emitter, left)
             r = compile(emitter, right)
-            pos_ptr = "%" + emitter.get_temp()
+            ret_reg = "%" + emitter.get_temp()
             operator = OPS[type(node)]
-            emitter << f"\t{pos_ptr} = icmp {operator} i32 {l}, {r}"
-            return pos_ptr
+            emitter << f"\t{ret_reg} = icmp {operator} i32 {l}, {r}"
+            return ret_reg
         case ArrayAccess(name, indexes, type_) | FunctionCallArrayAccess(name, indexes, type_):
             llvm_type = plush_type_to_llvm_type(type_)
             stars = "*" * len(indexes)
-            array_pos_val_reg = None
+            ret_reg = None
 
             if isinstance(node, ArrayAccess):
                 pname = emitter.get_pointer_name(name)
@@ -385,12 +391,12 @@ def compile(emitter: Emitter, node):
                     type_ = type_.type_
                     while isinstance(type_, ArrayType):
                         stars += "*"
-                array_pos_val_reg = "%" + emitter.get_temp()
+                ret_reg = "%" + emitter.get_temp()
                 array_type = f"{llvm_type}{stars}"
-                emitter << f"\t{array_pos_val_reg} = load {array_type}, {array_type}* {pname}"
+                emitter << f"\t{ret_reg} = load {array_type}, {array_type}* {pname}"
 
             else: ## name is a function call
-                array_pos_val_reg = compile(emitter, name)
+                ret_reg = compile(emitter, name)
 
             name = name.name if isinstance(name, FunctionCall) else name
 
@@ -400,20 +406,20 @@ def compile(emitter: Emitter, node):
             for index in indexes:
                 stars = stars[0:-1]
                 index_value = compile(emitter, index)
-                pos_ptr = f"%{name}idx" + emitter.get_temp()
-                emitter << f"\t{pos_ptr} = getelementptr {llvm_type}{stars}, {llvm_type}{stars}* {array_pos_val_reg}, i32 {index_value}"
-                array_pos_val_reg = "%" + emitter.get_temp()
-                emitter << f"\t{array_pos_val_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pos_ptr}"
+                pos_ptr = f"%{name}_idx_{emitter.get_count()}"
+                emitter << f"\t{pos_ptr} = getelementptr {llvm_type}{stars}, {llvm_type}{stars}* {ret_reg}, i32 {index_value}"
+                ret_reg = "%" + emitter.get_temp()
+                emitter << f"\t{ret_reg} = load {llvm_type}{stars}, {llvm_type}{stars}* {pos_ptr}"
             
-            return array_pos_val_reg
+            return ret_reg
 
         case Id(vname, type_):
-            array_pos_val_reg = "%" + emitter.get_temp()
+            ret_reg = "%" + emitter.get_temp()
             pname = emitter.get_pointer_name(vname)
 
             llvm_type = plush_type_to_llvm_type(type_)
-            emitter << f"\t{array_pos_val_reg} = load {llvm_type}, {llvm_type}* {pname}"
-            return array_pos_val_reg
+            emitter << f"\t{ret_reg} = load {llvm_type}, {llvm_type}* {pname}"
+            return ret_reg
         case IntLit(value):
             return value
         case FloatLit(value):

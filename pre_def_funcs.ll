@@ -20,6 +20,8 @@ declare void @print_boolean_array(i1*, i32)
 
 declare i32 @power_int(i32 , i32)
 
+declare float @power_float(float,float)
+
 declare i32* @get_int_array(i32)
 
 declare float* @get_float_array(i32)
@@ -38,4 +40,4 @@ declare i8*** @get_string_matrix(i32,i32)
 
 declare i8** @get_char_matrix(i32,i32)
 
-declare i1** @get_boolean_array(i32,i32)
+declare i1** @get_boolean_matrix(i32,i32)

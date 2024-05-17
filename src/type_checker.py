@@ -44,6 +44,7 @@ def add_pre_def_funcs(ctx: Context):
     ctx.set_type("get_int_array", ("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType())), False)
     ctx.set_type("get_string_array", ("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType())), False)
     ctx.set_type("get_int_matrix", ("get_int_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(IntType()))), False)
+    ctx.set_type("get_string_matrix", ("get_string_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(StringType()))), False)
 
 def gather_global_vars_and_funcs(ctx: Context, node):
     for global_node in node.defs_or_decls:
