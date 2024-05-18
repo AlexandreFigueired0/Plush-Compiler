@@ -140,6 +140,10 @@ def type_check(ctx : Context, node) -> bool:
             if left_type != right_type:
                 raise TypeError(f"Type mismatch in {node}, both operands must be both of the same type but found {left_type} and {right_type}")
 
+            # Mod only accepts int
+            if isinstance(node,Mod) and left_type != IntType():
+                raise TypeError(f"Type mismatch in {node}, both operands must be of type int but found {left_type}")
+            
             node.type_ = left_type
             return left_type
         
@@ -272,7 +276,7 @@ def type_check(ctx : Context, node) -> bool:
 
             #TODO: Check if this name is a function
             if not isinstance(f_context, tuple):
-                raise TypeError(f"Function {name} is not callable")
+                raise TypeError(f"{name} is not callable")
             
             name, params, type_ = f_context
             # TODO: Check if the number of arguments is correct

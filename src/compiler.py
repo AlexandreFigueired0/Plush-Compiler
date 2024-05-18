@@ -1,24 +1,7 @@
 from ast_nodes import *
 from type_checker import type_check_program
 
-OPS = {  
-    Add: "add",
-    Sub: "sub",
-    Mul: "mul",
-    Div: "sdiv",
-    Mod: "srem",
-    Equal: "eq",
-    NotEqual: "ne",
-    LessThan: "slt",
-    LessThanOrEqual: "sle",
-    GreaterThan: "sgt",
-    GreaterThanOrEqual: "sge",
-    And: "and",
-    Or: "or",
-    LogicNot: "not",
-    UnaryMinus: "sub",
-    Power: "pow",
-}
+
 
 class Emitter(object):
     def __init__(self):
@@ -93,7 +76,7 @@ class Emitter(object):
 
 def first_traversal(emitter, node: Start):
     """
-    This function is used to declare all variables and functions in the global scope.
+    This function is used to declare all variables in the global scope.
     """
     for global_node in node.defs_or_decls:
         match global_node:
@@ -101,6 +84,7 @@ def first_traversal(emitter, node: Start):
                 emitter.decl_var(vname)
                 llvm_type = plush_type_to_llvm_type(type_)
                 pname = emitter.get_pointer_name(vname)
+                
                 val = compile(emitter, expr)
 
                 if isinstance(type_, StringType):
@@ -109,6 +93,8 @@ def first_traversal(emitter, node: Start):
                     emitter << f"{pname} = dso_local global i8* getelementptr inbounds ([{str_len} x i8], [{str_len} x i8]* {str_reg}, i32 0, i32 0)"
                 else:
                     emitter << f"{pname} = dso_local global {llvm_type} {val}"
+
+
 
 
 from llvmlite import ir
@@ -126,24 +112,55 @@ def get_array_llvm_type(type_):
     return str(plush_type_to_llvm_type(res_type)) + stars
 
 def plush_type_to_llvm_type(type_):
-    if isinstance(type_, IntType):
-        return ir.IntType(32)
-    elif isinstance(type_, FloatType):
-        return ir.FloatType()
-    elif isinstance(type_, CharType):
-        return ir.IntType(8)
-    elif isinstance(type_, StringType):
-        return ir.PointerType(ir.IntType(8))
-    elif isinstance(type_, BooleanType):
-        return ir.IntType(1)
-    elif isinstance(type_, ArrayType):
-        return get_array_llvm_type(type_)
-    elif not type_:
-        return ir.VoidType()
-    else:
-        raise ValueError(f"Unknown type {type_}")
+    if not type_: return ir.VoidType()
 
+    match type_:
+        case IntType():
+            return ir.IntType(32)
+        case FloatType():
+            return ir.FloatType()
+        case CharType():
+            return ir.IntType(8)
+        case StringType():
+            return ir.PointerType(ir.IntType(8))
+        case BooleanType():
+            return ir.IntType(1)
+        case ArrayType(_):
+            return get_array_llvm_type(type_)
+        case _:
+            raise ValueError(f"Unknown type {type_}")
 
+def get_llvm_operation(node):
+    match node:
+        case Add(l,r,t):
+            return "add" if t == IntType() else "fadd"
+        case Sub(l,r,t):
+            return "sub" if t == IntType() else "fsub"
+        case Mul(l,r,t):
+            return "mul" if t == IntType() else "fmul"
+        case Div(l,r,t):
+            return "sdiv" if t == IntType() else "fdiv"
+        case Mod(l,r,t):
+            return "srem"
+        case Equal(l,r):
+            return "eq" if l.type_ == IntType() else "oeq"
+        case NotEqual(l,r):
+            return "ne" if l.type_ == IntType() else "une"
+        case LessThan(l,r):
+            return "slt" if l.type_ == IntType() else "olt"
+        case LessThanOrEqual(l,r):
+            return "sle" if l.type_ == IntType() else "ole"
+        case GreaterThan(l,r):
+            return "sgt" if l.type_ == IntType() else "ogt"
+        case GreaterThanOrEqual(l,r):
+            return "sge" if l.type_ == IntType() else "oge"
+        case And(l,r):
+            return "and"
+        case Or(l,r):
+            return "or"
+        case _:
+            raise ValueError(f"Unknown node {node}")
+    
 
 def compile(emitter: Emitter, node):
     # first_traversal(emitter, node)
@@ -156,6 +173,8 @@ def compile(emitter: Emitter, node):
             
 
             for def_or_decl in defs_or_decls:
+                if isinstance(def_or_decl, ValDefinition) or isinstance(def_or_decl, VarDefinition):
+                    continue
                 compile(emitter, def_or_decl)
 
             return emitter.get_code()
@@ -335,11 +354,8 @@ def compile(emitter: Emitter, node):
             l = compile(emitter, left)
             r = compile(emitter, right)
             ret_reg = "%" + emitter.get_temp()
-            operator = OPS[type(node)]
+            operator = get_llvm_operation(node)
             llvm_type = plush_type_to_llvm_type(type_)
-
-            if isinstance(type_, FloatType):
-                operator = "f" + operator
 
             emitter << f"\t{ret_reg} = {operator} {llvm_type} {l}, {r}"
             return ret_reg
@@ -357,7 +373,7 @@ def compile(emitter: Emitter, node):
             l = compile(emitter, left)
             r = compile(emitter, right)
 
-            operator = OPS[type(node)]
+            operator = get_llvm_operation(node)
             ret_reg = "%" + emitter.get_temp()
             emitter << f"\t{ret_reg} = {operator} i1 {l}, {r}"
             return ret_reg
@@ -369,7 +385,14 @@ def compile(emitter: Emitter, node):
         case UnaryMinus(expr):
             compiled_expr = compile(emitter, expr)
             ret_reg = "%" + emitter.get_temp()
-            emitter << f"\t{ret_reg} = sub i32 0, {compiled_expr}"
+            llvm_type = plush_type_to_llvm_type(expr.type_)
+
+            if isinstance(expr, FloatLit) or isinstance(expr, IntLit):
+                return f"-{expr.value}"
+            elif isinstance(expr.type_, FloatType):
+                emitter << f"\t{ret_reg} = fsub {llvm_type} 0.0, {compiled_expr}"
+            else:
+                emitter << f"\t{ret_reg} = sub {llvm_type} 0, {compiled_expr}"
             return ret_reg
         case LessThan(left, right) | LessThanOrEqual(left, right) |\
                 GreaterThan(left, right) | GreaterThanOrEqual(left, right) |\
@@ -377,8 +400,10 @@ def compile(emitter: Emitter, node):
             l = compile(emitter, left)
             r = compile(emitter, right)
             ret_reg = "%" + emitter.get_temp()
-            operator = OPS[type(node)]
-            emitter << f"\t{ret_reg} = icmp {operator} i32 {l}, {r}"
+            operator = get_llvm_operation(node)
+            llvm_cmp = "icmp" if isinstance(left.type_, IntType) else "fcmp"
+            llvm_type = plush_type_to_llvm_type(left.type_)
+            emitter << f"\t{ret_reg} = {llvm_cmp} {operator} {llvm_type} {l}, {r}"
             return ret_reg
         case ArrayAccess(name, indexes, type_) | FunctionCallArrayAccess(name, indexes, type_):
             llvm_type = plush_type_to_llvm_type(type_)

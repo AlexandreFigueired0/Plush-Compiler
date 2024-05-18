@@ -1,4 +1,5 @@
-@.pl_str_8 = private unnamed_addr constant [6 x i8] c"Hello\00" 
+@actual_min1 = dso_local global i32 -9
+@actual_max3 = dso_local global i32 9
 declare void @print_int(i32)
 
 declare void @print_float(float)
@@ -42,15 +43,55 @@ declare i8*** @get_string_matrix(i32,i32)
 declare i8** @get_char_matrix(i32,i32)
 
 declare i1** @get_boolean_matrix(i32,i32)
-define void @main() {
-	%strings1 = alloca i8***
-	%get_string_matrix_2 = call i8*** @get_string_matrix( i32  3, i32  3 )
-	store i8*** %get_string_matrix_2, i8**** %strings1
-	%tmp_3 = load i8***, i8**** %strings1
-	%strings_idx_4 = getelementptr i8**, i8*** %tmp_3, i32 0
-	%tmp_5 = load i8**, i8*** %strings_idx_4
-	%strings_idx_6 = getelementptr i8*, i8** %tmp_5, i32 0
-	%tmp_7 = load i8*, i8** %strings_idx_6
-	store i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.pl_str_8, i64 0, i64 0), i8** %strings_idx_6
+define i32 @maxRangeSquared(i32 %mi, i32 %ma) {
+	%maxRangeSquared6 = alloca i32
+	%mi4 = alloca i32
+	%ma5 = alloca i32
+	store i32 %mi, i32* %mi4
+	store i32 %ma, i32* %ma5
+	%current_max7 = alloca i32
+	%tmp_8 = load i32, i32* %mi4
+	%tmp_9 = call i32 @power_int(i32 %tmp_8, i32 2)
+	store i32 %tmp_9, i32* %current_max7
+	br label %while_cond10
+while_cond10:
+	%tmp_13 = load i32, i32* %mi4
+	%tmp_14 = load i32, i32* %ma5
+	%tmp_15 = icmp sle i32 %tmp_13, %tmp_14
+	br i1 %tmp_15, label %while_body11, label %while_end12
+while_body11:
+	%current_candidate16 = alloca i32
+	%tmp_17 = load i32, i32* %mi4
+	%tmp_18 = call i32 @power_int(i32 %tmp_17, i32 2)
+	store i32 %tmp_18, i32* %current_candidate16
+	%tmp_19 = load i32, i32* %current_candidate16
+	%tmp_20 = load i32, i32* %current_max7
+	%tmp_21 = icmp sgt i32 %tmp_19, %tmp_20
+	br i1 %tmp_21, label %if_true22, label %if_end23
+if_true22:
+	%tmp_24 = load i32, i32* %current_candidate16
+	store i32 %tmp_24, i32* %current_max7
+	br label %if_end23
+if_end23:
+	%tmp_25 = load i32, i32* %mi4
+	%tmp_26 = add i32 %tmp_25, 1
+	store i32 %tmp_26, i32* %mi4
+	br label %while_cond10
+while_end12:
+	%tmp_27 = load i32, i32* %current_max7
+	store i32 %tmp_27, i32* %maxRangeSquared6
+	%tmp_28 = load i32, i32* %maxRangeSquared6
+	ret i32 %tmp_28
+}
+define void @main(i8** %args) {
+	%args29 = alloca i8**
+	store i8** %args, i8*** %args29
+	%result30 = alloca i32
+	%tmp_31 = load i32, i32* @actual_min1
+	%tmp_32 = load i32, i32* @actual_max3
+	%maxRangeSquared_33 = call i32 @maxRangeSquared( i32  %tmp_31, i32  %tmp_32 )
+	store i32 %maxRangeSquared_33, i32* %result30
+	%tmp_34 = load i32, i32* %result30
+	call void @print_int( i32  %tmp_34 )
 	ret void
 }
