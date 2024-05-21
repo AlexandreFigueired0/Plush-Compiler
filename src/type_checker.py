@@ -7,6 +7,7 @@ from plush_parser import parse_plush
 class Context():
     def __init__(self):
         self.stack = [{}]
+        self.functions = {}
     
     def get_type(self, name):
         for scope in self.stack[::-1]:
@@ -17,6 +18,14 @@ class Context():
     def set_type(self, name, value, can_define=True):
         scope = self.stack[-1]
         scope[name] = (value, can_define)
+
+    def add_function(self,f_content, can_define=True):
+        self.functions[f_content[0]] = (f_content, can_define)
+    
+    def get_function(self, name):
+        if name in self.functions:
+            return self.functions[name]
+        raise TypeError(f"Function {name} doesn't exist")
 
     def has_var(self, name):
         for scope in self.stack[::-1]:
@@ -34,17 +43,17 @@ class Context():
         self.stack.pop()
 
 def add_pre_def_funcs(ctx: Context):
-    ctx.set_type("print_int", ("print_int",[ValParam(name="x", type_ = IntType())],None), False)
-    ctx.set_type("print_float", ("print_float",[ValParam(name="x", type_ = FloatType())],None), False)
-    ctx.set_type("print_boolean", ("print_boolean",[ValParam(name="x", type_ = BooleanType())],None), False)
-    ctx.set_type("print_string", ("print_string",[ValParam(name="s", type_ = StringType())],None), False)
-    ctx.set_type("print_char", ("print_char",[ValParam(name="c", type_ = CharType())],None), False)
-    ctx.set_type("print_int_array", ("print_int_array",[ValParam(name="a", type_ = ArrayType(type_=IntType())), ValParam(name="size", type_=IntType())],None), False)
-    ctx.set_type("power_int", ("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],None), False)
-    ctx.set_type("get_int_array", ("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType())), False)
-    ctx.set_type("get_string_array", ("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType())), False)
-    ctx.set_type("get_int_matrix", ("get_int_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(IntType()))), False)
-    ctx.set_type("get_string_matrix", ("get_string_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(StringType()))), False)
+    ctx.add_function(("print_int",[ValParam(name="x", type_ = IntType())],None), False)
+    ctx.add_function(("print_float",[ValParam(name="x", type_ = FloatType())],None), False)
+    ctx.add_function(("print_boolean",[ValParam(name="x", type_ = BooleanType())],None), False)
+    ctx.add_function(("print_string",[ValParam(name="s", type_ = StringType())],None), False)
+    ctx.add_function(("print_char",[ValParam(name="c", type_ = CharType())],None), False)
+    ctx.add_function(("print_int_array",[ValParam(name="a", type_ = ArrayType(type_=IntType())), ValParam(name="size", type_=IntType())],None), False)
+    ctx.add_function(("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],None), False)
+    ctx.add_function(("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType())), False)
+    ctx.add_function(("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType())), False)
+    ctx.add_function(("get_int_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(IntType()))), False)
+    ctx.add_function(("get_string_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(StringType()))), False)
 
 def gather_global_vars_and_funcs(ctx: Context, node):
     for global_node in node.defs_or_decls:
@@ -269,14 +278,8 @@ def type_check(ctx : Context, node) -> bool:
         #TODO: Check if the arguments are correct
         #TODO: Check if the return type is correct
         case FunctionCall(name, given_args):
-            if not ctx.has_var(name):
-                raise TypeError(f"Function {name} doesn't exist")
             
-            f_context,_ = ctx.get_type(name)
-
-            #TODO: Check if this name is a function
-            if not isinstance(f_context, tuple):
-                raise TypeError(f"{name} is not callable")
+            f_context,_ = ctx.get_function(name)
             
             name, params, type_ = f_context
             # TODO: Check if the number of arguments is correct
@@ -296,7 +299,7 @@ def type_check(ctx : Context, node) -> bool:
             f_context = (name,[],type_)
             for p in params:
                 f_context[1].append(p)
-            ctx.set_type(name, f_context)
+            ctx.add_function(f_context)
 
         case FunctionDefinition(name, params, type_, block):
             f_context = (name,params,type_)
@@ -319,19 +322,23 @@ def type_check(ctx : Context, node) -> bool:
 
             ctx.enter_block()
 
-            # TODO: inject params into the context, with according types and flag can_define
+            # inject params into the context, with according types and flag can_define
             for p in params:
                 ctx.set_type(p.name,p.type_, isinstance(p, VarParam))
 
-            # TODO: If the func has a return, inject var with name of the func for the return
+            # If the func has a return, inject var with name of the func for the return
             if type_:
                 ctx.set_type(name, type_)
 
+            ctx.enter_block()
+            # allow recursion
+            ctx.add_function(f_context, False)
             for statement in block:
                 type_check(ctx, statement)
             ctx.exit_block()
+            ctx.exit_block()
 
-            ctx.set_type(name, f_context, False)
+            ctx.add_function(f_context, False)
 
         case Id(name):
             res = ctx.get_type(name)[0]

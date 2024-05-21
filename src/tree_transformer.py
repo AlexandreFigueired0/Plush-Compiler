@@ -141,7 +141,7 @@ class PlushTree(Transformer):
         return Id(name)
 
     def int_lit(self, value):
-        return IntLit(value)
+        return IntLit(value.replace("_", ""))
     
     def float_lit(self, value):
         return FloatLit(value)
