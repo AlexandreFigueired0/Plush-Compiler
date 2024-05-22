@@ -10,24 +10,29 @@ class PlushTree(Transformer):
     # DECLARATIONS
 
     def function_declaration(self, name, params, type_ = None):
-        return FunctionDeclaration(name, params, type_)
+        return FunctionDeclaration(name = name.value, params = params, type_ = type_,
+        line_start=name.line, column_start=name.column, line_end=name.end_line, column_end=name.end_column)
     
     def params(self, *params):
         return list(params)
     
     def val_param(self, name, type_):
-        return ValParam(name, type_)
+        return ValParam(name = name.value, type_ = type_,
+        line_start=name.line, column_start=name.column, line_end=name.end_line, column_end=name.end_column)
 
     def var_param(self, name, type_):
-        return VarParam(name, type_)
+        return VarParam(name = name, type_ = type_,
+        line_start=name.line, column_start=name.column, line_end=name.end_line, column_end=name.end_column)
     
     # DEFINITIONS
 
     def val_definition(self, name, type_, expr):
-        return ValDefinition(name, type_, expr)
+        return ValDefinition(name = name.value, type_ = type_, expr = expr,
+        line_start=name.line, column_start=name.column, line_end=expr.line_end, column_end=expr.column_end)
     
     def var_definition(self, name, type_, expr):
-        return VarDefinition(name, type_, expr)
+        return VarDefinition(name = name.value, type_ = type_, expr = expr,
+        line_start=name.line, column_start=name.column, line_end=expr.line_end, column_end=expr.column_end)
     
     def function_definition(self, name, params, type_or_block, block= None):
         if isinstance(type_or_block, list):
@@ -36,15 +41,18 @@ class PlushTree(Transformer):
         else:
             type_ = type_or_block
 
-        return FunctionDefinition(name, params, type_, block)
+        return FunctionDefinition(name = name.value, params = params, type_ = type_, block = block,
+        line_start=name.line, column_start=name.column, line_end=block[-1].line_end, column_end=block[-1].column_end)
     
     def assignment(self, name, expr):
-        return Assignment(name, expr)
+        return Assignment(name = name.value, expr = expr,
+        line_start=name.line, column_start=name.column, line_end=expr.line_end, column_end=expr.column_end)
     
     def array_position_assignment(self, name, *index_and_expr):
         indexes = index_and_expr[:-1]
         expr = index_and_expr[-1]
-        return ArrayPositionAssignment(name, indexes, expr)
+        return ArrayPositionAssignment(name = name.value, indexes = indexes, expr = expr,
+        line_start=name.line, column_start=name.column, line_end=expr.line_end, column_end=expr.column_end)
     
     def block(self, *statements):
         return list(statements)
@@ -66,22 +74,6 @@ class PlushTree(Transformer):
     def function_call(self, name, args):
         return FunctionCall(name, args)
 
-    # TOKENS
-
-    def NAME(self, token):
-        return str(token)
-    
-    def INT(self, token):
-        return str(token)
-    
-    def FLOAT(self, token):
-        return str(token)
-    
-    def STRING(self, token):
-        return str(token)
-    
-    def BOOLEAN(self, token):
-        return str(token)
     
     # EXPRESSIONS
     def or_(self, left, right):
@@ -141,19 +133,24 @@ class PlushTree(Transformer):
         return Id(name)
 
     def int_lit(self, value):
-        return IntLit(value.replace("_", ""))
+        return IntLit(value = value.value.replace("_", ""), type_=IntType(),
+        line_start=value.line, column_start=value.column, line_end=value.end_line, column_end=value.end_column)
     
     def float_lit(self, value):
-        return FloatLit(value)
+        return FloatLit(value = value.value, type_=FloatType(),
+        line_start=value.line, column_start=value.column, line_end=value.end_line, column_end=value.end_column)
     
     def boolean_lit(self, value):
-        return BooleanLit(value)
+        return BooleanLit(value = value.value, type_=BooleanType(),
+        line_start=value.line, column_start=value.column, line_end=value.end_line, column_end=value.end_column)
     
     def char_lit(self, value):
-        return CharLit(value[1:-1]) # remove quotes
+        return CharLit(value =value.value[1:-1], type_=CharType(),
+        line_start=value.line, column_start=value.column, line_end=value.end_line, column_end=value.end_column)
     
     def string(self, value):
-        return String(value[1:-1]) # remove quotes
+        return String(value =value.value[1:-1], type_=StringType(),
+        line_start=value.line, column_start=value.column, line_end=value.end_line, column_end=value.end_column)
     
     # TYPES
 

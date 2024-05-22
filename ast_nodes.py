@@ -2,34 +2,41 @@ from dataclasses import dataclass
 from abc import ABC
 
 @dataclass
+class Node(ABC):
+    line_start: int
+    column_start: int
+    line_end: int
+    column_end: int
+
+@dataclass
 class Type(ABC):
     pass
 
 @dataclass
-class Expression(ABC):
-    pass
+class Expression(Node):
+    type_: Type
 # START
 
 @dataclass
-class Start:
+class Start():
     defs_or_decls: list
 
 
 # DECLARATIONS
 
 @dataclass
-class ValParam:
+class ValParam(Node):
     name: str
     type_: Type
 
 @dataclass
-class VarParam:
+class VarParam(Node):
     name: str
     type_: Type
 
 
 @dataclass
-class FunctionDeclaration:
+class FunctionDeclaration(Node):
     name: str
     params: list
     type_: Type
@@ -38,21 +45,21 @@ class FunctionDeclaration:
 # DEFINITIONS
 
 @dataclass
-class ValDefinition:
+class ValDefinition(Node):
     name: str
     type_: Type
     expr: Expression
 
 
 @dataclass
-class VarDefinition:
+class VarDefinition(Node):
     name: str
     type_: Type
     expr: Expression
 
 
 @dataclass
-class FunctionDefinition:
+class FunctionDefinition(Node):
     name: str
     params: list
     type_: Type
@@ -60,12 +67,12 @@ class FunctionDefinition:
 
 
 @dataclass
-class Assignment:
+class Assignment(Node):
     name: str
     expr: Expression
 
 @dataclass
-class ArrayPositionAssignment:
+class ArrayPositionAssignment(Node):
     name: str
     indexes: list[Expression]
     expr: Expression
@@ -74,19 +81,19 @@ class ArrayPositionAssignment:
 # STATEMENTS
 
 @dataclass
-class If():
+class If(Node):
     condition: Expression
     block: list
 
 
 @dataclass
-class IfElse():
+class IfElse(Node):
     condition: Expression
     block: list
     else_block: list
 
 @dataclass
-class While():
+class While(Node):
     condition: Expression
     block: list
 
@@ -131,154 +138,129 @@ class ArrayType(Type):
 # EXPRESSIONS
 
 @dataclass
-class FunctionCall():
+class FunctionCall(Expression):
     name: str
     args: list
-    type_: Type = None
 
 @dataclass
 class Or(Expression):
     left: Expression
     right: Expression
-    type_ = BooleanType()
 
 
 @dataclass
 class And(Expression):
     left: Expression
     right: Expression
-    type_ = BooleanType()
 
 @dataclass
 class Equal(Expression):
     left: Expression
     right: Expression
-    type_ = BooleanType()
 
 @dataclass
 class NotEqual(Expression):
     left: Expression
     right: Expression
-    type_ = BooleanType()
 
 @dataclass
 class LessThan(Expression):
     left: Expression
     right: Expression
-    type_ = BooleanType()
 @dataclass
 class GreaterThan(Expression):
     left: Expression
     right: Expression
-    type_ = BooleanType()
 
 @dataclass
 class LessThanOrEqual(Expression):
     left: Expression
     right: Expression
-    type_ = BooleanType()
 
 @dataclass
 class GreaterThanOrEqual(Expression):
     left: Expression
     right: Expression
-    type_ = BooleanType()
 
 @dataclass
 class Add(Expression):
     left: Expression
     right: Expression
-    type_: Type = None
 
 
 @dataclass
 class Sub(Expression):
     left: Expression
     right: Expression
-    type_: Type = None
 
 
 @dataclass
 class Power(Expression):
     left: Expression
     right: Expression
-    type_: Type = None
 
 
 @dataclass
 class Mul(Expression):
     left: Expression
     right: Expression
-    type_: Type = None
 
 
 @dataclass
 class Div(Expression):
     left: Expression
     right: Expression
-    type_: Type = None
 
 @dataclass
 class Mod(Expression):
     left: Expression
     right: Expression
-    type_: Type = None
 
 @dataclass
 class UnaryMinus(Expression):
     expr: Expression
-    type_: Type = None
 
 
 @dataclass
 class LogicNot(Expression):
     expr: Expression
-    type_ = BooleanType()
 
 
 @dataclass
 class ArrayAccess(Expression):
     name: str
     indexes: list[Expression]
-    type_: Type = None
 
 @dataclass
 class FunctionCallArrayAccess(Expression):
     fcall: FunctionCall
     indexes: list[Expression]
-    type_: Type = None
 
 @dataclass
 class Id(Expression):
     name: str
-    type_: Type = None
 
 
 @dataclass
 class IntLit(Expression):
     value: int
-    type_ = IntType()
 
     
 
 @dataclass
 class FloatLit(Expression):
     value: float
-    type_ = FloatType()
 
 @dataclass
 class CharLit(Expression):
     value: str
-    type_ = CharType()
 
 @dataclass
 class BooleanLit(Expression):
     value: bool
-    type_ = BooleanType()
 
 
 @dataclass
 class String(Expression):
     value: str
-    type_ = StringType()
 

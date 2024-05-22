@@ -1,4 +1,4 @@
-from lark import Lark
+from lark import Lark, LarkError
 from tree_transformer import PlushTree
 
 
@@ -108,7 +108,13 @@ parser = Lark(plush_grammar,parser="lalr", transformer=PlushTree())
 
 
 def parse_plush(program : str):
-    return parser.parse(program.strip())
+    try:
+        return parser.parse(program.strip())
+    except LarkError as e:
+        line = e.line
+        column = e.column
+        raise e
+        
 
 if __name__ == "__main__":
     # Example usage:
