@@ -1,5 +1,6 @@
 from ast_nodes import *
 from type_checker import type_check_program
+import sys
 
 
 
@@ -168,7 +169,7 @@ def compile(emitter: Emitter, node):
     match node:
         case Start( defs_or_decls ):
             first_traversal(emitter, node)
-            predef_funcs_file = open("../pre_def_funcs.ll", "r")
+            predef_funcs_file = open("pre_def_funcs.ll", "r")
             emitter << predef_funcs_file.read()
             
 
@@ -469,7 +470,8 @@ def compile(emitter: Emitter, node):
 
 
 if __name__ == "__main__":
-    typed_tree = type_check_program("my_program.pl")
+    fname = sys.argv[1]
+    typed_tree = type_check_program(fname)
     e = Emitter()
     llvm_code = compile(e, typed_tree)
     print(llvm_code)
@@ -478,6 +480,7 @@ if __name__ == "__main__":
     import subprocess
 
     lib_flags = "-lm"
+    print()
     # /usr/local/opt/llvm/bin/lli code.ll
     r = subprocess.call(
         # "llc code.ll && clang code.s -o code -no-pie && ./code",

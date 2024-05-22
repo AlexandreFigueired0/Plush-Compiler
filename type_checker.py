@@ -1,6 +1,6 @@
 
 from ast_nodes import *
-from tree_transformer import PlushTree, tree_to_string
+from tree_transformer import PlushTree
 from plush_parser import parse_plush
 
 

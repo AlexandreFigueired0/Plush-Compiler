@@ -1,5 +1,5 @@
 from lark import Lark
-from tree_transformer import PlushTree, tree_to_string
+from tree_transformer import PlushTree
 
 
 
@@ -119,5 +119,5 @@ if __name__ == "__main__":
     file = open("my_program.pl","r")
     program = file.read()
     tree = parse_plush(program)
-    # print(tree.pretty())
-    print(tree_to_string(tree))
+    for node in tree.defs_or_decls:
+        print(node)

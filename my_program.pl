@@ -49,6 +49,12 @@ function main() {
     m2[1][0] := 3;
     m2[1][1] := 4;
 
+    print_string("Matrix 1:");
+    print_matrix(m1, m1_rows, m1_cols);
+    print_string("Matrix 2:");
+    print_matrix(m2, m2_rows, m2_cols);
+
+    print_string("Matrix Product:");
     
     print_matrix(matrixProduct(m1, m2), m1_rows, m2_cols);
 }
