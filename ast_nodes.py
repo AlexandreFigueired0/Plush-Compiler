@@ -9,7 +9,7 @@ class Node(ABC):
     column_end: int
 
 @dataclass
-class Type(ABC):
+class Type(Node):
     pass
 
 @dataclass

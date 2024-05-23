@@ -1,6 +1,7 @@
-function main() {
-    var x :int := 1;
-    x := 2;
+function main( val arg :int ) {
+    while (true && true) {
+        print();
+    } 
 }
 
 # TODO: ACRESENTAR OS TOKENS DE INICIO E FIM AO PARSER

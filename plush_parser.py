@@ -6,30 +6,30 @@ from tree_transformer import PlushTree
 plush_grammar = f"""
     start: (function_declaration | val_definition | var_definition | function_definition)*
 
-    ?function_declaration: "function" NAME "(" params ")" (":" type)? ";" -> function_declaration
-    ?function_definition: "function" NAME "(" params ")" (":" type)? block -> function_definition
+    ?function_declaration: FUNCTION NAME "(" params ")" (":" type)? SEMICOLON -> function_declaration
+    ?function_definition: FUNCTION NAME "(" params ")" (":" type)? block -> function_definition
     
     ?definition : val_definition
                 | var_definition
                 | assignment
                 | array_position_assignment
     
-    ?assignment  : NAME ":=" expression ";" -> assignment
-    ?array_position_assignment: NAME ("[" expression "]")+ ":=" expression ";"
+    ?assignment  : NAME ":=" expression SEMICOLON -> assignment
+    ?array_position_assignment: NAME ("[" expression "]")+ ":=" expression SEMICOLON
 
-    ?val_definition  : "val" NAME ":" type ":=" expression ";"
-    ?var_definition  : "var" NAME ":" type  ":=" expression ";"
+    ?val_definition  : VAL NAME ":" type ":=" expression SEMICOLON
+    ?var_definition  : VAR NAME ":" type  ":=" expression SEMICOLON
     
     params: param ("," param)*
             |
-    param  : "val" NAME ":" type  -> val_param
-            | "var" NAME ":" type  -> var_param
+    param  : VAL NAME ":" type  -> val_param
+            | VAR NAME ":" type  -> var_param
 
-    block: "{{" ( val_definition | var_definition | assignment | array_position_assignment | statement | (function_call ";") )* "}}"
+    block: LBRACE ( val_definition | var_definition | assignment | array_position_assignment | statement | (function_call ";") )* RBRACE
 
-    ?statement  : "if"  expression block -> if_
-                | "if"  expression block "else" block -> if_else
-                | "while" expression block -> while_
+    ?statement  : IF  expression block -> if_
+                | IF  expression block "else" block -> if_else
+                | WHILE expression block -> while_
                 
     
     ?expression  : logic_less_priority
@@ -70,19 +70,38 @@ plush_grammar = f"""
             | array_access 
             | function_call
 
-    function_call: NAME "(" concrete_params ")"
+    function_call: NAME LPAREN concrete_params RPAREN
     ?array_access: (NAME|function_call) ("[" expression "]")+
     concrete_params: expression ("," expression)*  
                     |
     
-    ?type: "int" -> int_type
-        | "float" -> float_type
-        | "double" -> double_type
-        | "string" -> string_type
-        | "char" -> char_type
-        | "boolean" -> boolean_type
-        | "[" type "]" -> array_type
+    type: INT_TYPE -> int_type
+        | FLOAT_TYPE -> float_type
+        | STRING_TYPE -> string_type
+        | CHAR_TYPE -> char_type
+        | BOOLEAN_TYPE -> boolean_type
+        | LSQUARE type RSQUARE -> array_type
     
+
+    FUNCTION: "function"
+    VAL: "val"
+    VAR: "var"
+    IF: "if"
+    WHILE: "while"
+
+    SEMICOLON: ";"
+    LSQUARE: "["
+    RSQUARE: "]"
+    LBRACE: "{{"
+    RBRACE: "}}"
+    LPAREN: "("
+    RPAREN: ")"
+
+    INT_TYPE: "int"
+    FLOAT_TYPE: "float"
+    STRING_TYPE: "string"
+    CHAR_TYPE: "char"
+    BOOLEAN_TYPE: "boolean"
 
     INT.1: /[0-9](_*[0-9])*/
     FLOAT.2: /[0-9]*\.[0-9]+/
@@ -114,7 +133,15 @@ def parse_plush(program : str):
         line = e.line
         column = e.column
         raise e
-        
+
+import json
+from dataclasses import asdict, is_dataclass
+
+def node_to_json(node):
+    if not is_dataclass(node):
+        raise TypeError("Provided object is not a dataclass instance")
+    print (json.dumps(asdict(node), default=str))
+
 
 if __name__ == "__main__":
     # Example usage:
@@ -125,5 +152,6 @@ if __name__ == "__main__":
     file = open("my_program.pl","r")
     program = file.read()
     tree = parse_plush(program)
+    # print(tree.pretty())
     for node in tree.defs_or_decls:
         print(node)
