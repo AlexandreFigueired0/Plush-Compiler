@@ -169,7 +169,7 @@ class PlushTree(Transformer):
         line_start=name_or_fcall.line, column_start=name_or_fcall.column, line_end=indexes[-1].line_end, column_end=indexes[-1].column_end)
 
     def id(self, name : Token):
-        return Id(name = name, type_=None,
+        return Id(name = name.value, type_=None,
         line_start=name.line, column_start=name.column, line_end=name.end_line, column_end=name.end_column)
 
     def int_lit(self, value : Token):

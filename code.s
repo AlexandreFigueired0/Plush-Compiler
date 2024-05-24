@@ -131,93 +131,60 @@ print_matrix:                           # @print_matrix
 main:                                   # @main
 	.cfi_startproc
 # %bb.0:
-	subq	$40, %rsp
-	.cfi_def_cfa_offset 48
+	subq	$24, %rsp
+	.cfi_def_cfa_offset 32
 	movl	m1_rows1(%rip), %edi
 	movl	m1_cols2(%rip), %esi
 	callq	get_int_matrix@PLT
-	movq	%rax, (%rsp)
+	movq	%rax, 8(%rsp)
 	movl	m2_rows3(%rip), %edi
 	movl	m2_cols4(%rip), %esi
 	callq	get_int_matrix@PLT
-	movq	%rax, 8(%rsp)
-	movq	(%rsp), %rax
+	movq	%rax, 16(%rsp)
+	movq	8(%rsp), %rax
 	movq	(%rax), %rax
 	movl	$1, (%rax)
-	movq	(%rsp), %rax
+	movq	8(%rsp), %rax
 	movq	(%rax), %rax
 	movl	$2, 4(%rax)
-	movq	(%rsp), %rax
+	movq	8(%rsp), %rax
 	movq	8(%rax), %rax
 	movl	$3, (%rax)
-	movq	(%rsp), %rax
+	movq	8(%rsp), %rax
 	movq	8(%rax), %rax
 	movl	$4, 4(%rax)
-	movq	(%rsp), %rax
+	movq	8(%rsp), %rax
 	movq	16(%rax), %rax
 	movl	$5, (%rax)
-	movq	(%rsp), %rax
+	movq	8(%rsp), %rax
 	movq	16(%rax), %rax
 	movl	$6, 4(%rax)
-	movq	8(%rsp), %rax
+	movq	16(%rsp), %rax
 	movq	(%rax), %rax
 	movl	$1, (%rax)
-	movq	8(%rsp), %rax
+	movq	16(%rsp), %rax
 	movq	(%rax), %rax
 	movl	$2, 4(%rax)
-	movq	8(%rsp), %rax
+	movq	16(%rsp), %rax
 	movq	8(%rax), %rax
 	movl	$3, (%rax)
-	movq	8(%rsp), %rax
+	movq	16(%rsp), %rax
 	movq	8(%rax), %rax
 	movl	$4, 4(%rax)
-	movq	$.L.pl_str_146, 32(%rsp)
-	movl	$.L.pl_str_146, %edi
-	callq	print_string@PLT
-	movq	(%rsp), %rdi
-	movl	m1_rows1(%rip), %esi
-	movl	m1_cols2(%rip), %edx
-	callq	print_matrix@PLT
-	movq	$.L.pl_str_152, 24(%rsp)
-	movl	$.L.pl_str_152, %edi
-	callq	print_string@PLT
 	movq	8(%rsp), %rdi
-	movl	m2_rows3(%rip), %esi
-	movl	m2_cols4(%rip), %edx
-	callq	print_matrix@PLT
-	movq	$.L.pl_str_158, 16(%rsp)
-	movl	$.L.pl_str_158, %edi
-	callq	print_string@PLT
-	movq	(%rsp), %rdi
-	movq	8(%rsp), %rsi
+	movq	16(%rsp), %rsi
 	callq	matrixProduct@PLT
 	movl	m1_rows1(%rip), %esi
 	movl	m2_cols4(%rip), %edx
 	movq	%rax, %rdi
 	callq	print_matrix@PLT
-	addq	$40, %rsp
+	addq	$24, %rsp
 	.cfi_def_cfa_offset 8
 	retq
 .Lfunc_end2:
 	.size	main, .Lfunc_end2-main
 	.cfi_endproc
                                         # -- End function
-	.type	.L.pl_str_158,@object           # @.pl_str_158
-	.section	.rodata.str1.1,"aMS",@progbits,1
-.L.pl_str_158:
-	.asciz	"Matrix Product:"
-	.size	.L.pl_str_158, 16
-
-	.type	.L.pl_str_152,@object           # @.pl_str_152
-.L.pl_str_152:
-	.asciz	"Matrix 2:"
-	.size	.L.pl_str_152, 10
-
-	.type	.L.pl_str_146,@object           # @.pl_str_146
-.L.pl_str_146:
-	.asciz	"Matrix 1:"
-	.size	.L.pl_str_146, 10
-
 	.type	m1_rows1,@object                # @m1_rows1
 	.data
 	.globl	m1_rows1

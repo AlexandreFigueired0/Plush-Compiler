@@ -1,6 +1,3 @@
-@.pl_str_158 = private unnamed_addr constant [16 x i8] c"Matrix Product:\00" 
-@.pl_str_152 = private unnamed_addr constant [10 x i8] c"Matrix 2:\00" 
-@.pl_str_146 = private unnamed_addr constant [10 x i8] c"Matrix 1:\00" 
 @m1_rows1 = dso_local global i32 3
 @m1_cols2 = dso_local global i32 2
 @m2_rows3 = dso_local global i32 2
@@ -237,31 +234,11 @@ define void @main() {
 	%m2_idx_144 = getelementptr i32, i32* %tmp_143, i32 1
 	%tmp_145 = load i32, i32* %m2_idx_144
 	store i32 4, i32* %m2_idx_144
-	%tmp_147 = alloca i8*
-	store i8* getelementptr inbounds ([10 x i8], [10 x i8]* @.pl_str_146, i64 0, i64 0), i8** %tmp_147
-	%tmp_148 = load i8*, i8** %tmp_147
-	call void @print_string( i8*  %tmp_148 )
-	%tmp_149 = load i32**, i32*** %m188
-	%tmp_150 = load i32, i32* @m1_rows1
-	%tmp_151 = load i32, i32* @m1_cols2
-	call void @print_matrix( i32**  %tmp_149, i32  %tmp_150, i32  %tmp_151 )
-	%tmp_153 = alloca i8*
-	store i8* getelementptr inbounds ([10 x i8], [10 x i8]* @.pl_str_152, i64 0, i64 0), i8** %tmp_153
-	%tmp_154 = load i8*, i8** %tmp_153
-	call void @print_string( i8*  %tmp_154 )
-	%tmp_155 = load i32**, i32*** %m292
-	%tmp_156 = load i32, i32* @m2_rows3
-	%tmp_157 = load i32, i32* @m2_cols4
-	call void @print_matrix( i32**  %tmp_155, i32  %tmp_156, i32  %tmp_157 )
-	%tmp_159 = alloca i8*
-	store i8* getelementptr inbounds ([16 x i8], [16 x i8]* @.pl_str_158, i64 0, i64 0), i8** %tmp_159
-	%tmp_160 = load i8*, i8** %tmp_159
-	call void @print_string( i8*  %tmp_160 )
-	%tmp_161 = load i32**, i32*** %m188
-	%tmp_162 = load i32**, i32*** %m292
-	%matrixProduct_163 = call i32** @matrixProduct( i32**  %tmp_161, i32**  %tmp_162 )
-	%tmp_164 = load i32, i32* @m1_rows1
-	%tmp_165 = load i32, i32* @m2_cols4
-	call void @print_matrix( i32**  %matrixProduct_163, i32  %tmp_164, i32  %tmp_165 )
+	%tmp_146 = load i32**, i32*** %m188
+	%tmp_147 = load i32**, i32*** %m292
+	%matrixProduct_148 = call i32** @matrixProduct( i32**  %tmp_146, i32**  %tmp_147 )
+	%tmp_149 = load i32, i32* @m1_rows1
+	%tmp_150 = load i32, i32* @m2_cols4
+	call void @print_matrix( i32**  %matrixProduct_148, i32  %tmp_149, i32  %tmp_150 )
 	ret void
 }

@@ -42,18 +42,19 @@ class Context():
     def exit_block(self):
         self.stack.pop()
 
-def add_pre_def_funcs(ctx: Context):
-    ctx.add_function(("print_int",[ValParam(name="x", type_ = IntType())],None), False)
-    ctx.add_function(("print_float",[ValParam(name="x", type_ = FloatType())],None), False)
-    ctx.add_function(("print_boolean",[ValParam(name="x", type_ = BooleanType())],None), False)
-    ctx.add_function(("print_string",[ValParam(name="s", type_ = StringType())],None), False)
-    ctx.add_function(("print_char",[ValParam(name="c", type_ = CharType())],None), False)
-    ctx.add_function(("print_int_array",[ValParam(name="a", type_ = ArrayType(type_=IntType())), ValParam(name="size", type_=IntType())],None), False)
-    ctx.add_function(("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],None), False)
-    ctx.add_function(("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType())), False)
-    ctx.add_function(("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType())), False)
-    ctx.add_function(("get_int_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(IntType()))), False)
-    ctx.add_function(("get_string_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(StringType()))), False)
+    def add_pre_def_funcs(self):
+        self.add_function(("print_int",[ValParam(name="x", type_ = IntType())],None), False)
+        self.add_function(("print_float",[ValParam(name="x", type_ = FloatType())],None), False)
+        self.add_function(("print_boolean",[ValParam(name="x", type_ = BooleanType())],None), False)
+        self.add_function(("print_string",[ValParam(name="s", type_ = StringType())],None), False)
+        self.add_function(("print_char",[ValParam(name="c", type_ = CharType())],None), False)
+        self.add_function(("print_int_array",[ValParam(name="a", type_ = ArrayType(type_=IntType())), ValParam(name="size", type_=IntType())],None), False)
+        self.add_function(("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],None), False)
+        self.add_function(("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType())), False)
+        self.add_function(("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType())), False)
+        self.add_function(("get_int_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=IntType()))), False)
+        self.add_function(("get_string_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=StringType()))), False)
+
 
 def gather_global_vars_and_funcs(ctx: Context, node):
     for global_node in node.defs_or_decls:
@@ -76,46 +77,47 @@ def gather_global_vars_and_funcs(ctx: Context, node):
             case _:
                 pass
 
+from dataclasses import asdict
 def type_check(ctx : Context, node) -> bool:
     match node:
         case Start(defs_or_decls):
-            add_pre_def_funcs(ctx)
+            ctx.add_pre_def_funcs()
 
             gather_global_vars_and_funcs(ctx, node)
 
             for def_or_decl in defs_or_decls:
                 type_check(ctx, def_or_decl)
             return node
-        case ValDefinition(name, type_, expr) | VarDefinition(name, type_, expr):
+        case ValDefinition(_,_,_,_,name, type_, expr) | VarDefinition(_,_,_,_,name, type_, expr):
 
-            # TODO: Check if variable is already declared
+            # Check if variable is already declared
             if ctx.has_var_in_current_scope(name):
-                raise TypeError(f"Variable {name} already declared")
+                raise NameError(f"Line {node.line_start}: Variable {name} already declared")
             
             expr_type = type_check(ctx, expr)
-            #TODO: floats can be assigned with ints?
+            # floats can be assigned with ints?
             if type_ != expr_type :
-                raise TypeError(f"Type mismatch for variable {name}, expected {type_} but got {expr_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch for variable {name}, expected {type_} but got {expr_type}")
             
             # If its a val, then cant be redefined
             ctx.set_type(name, type_, not isinstance(node, ValDefinition))
-        case Assignment(name, expr):
+        case Assignment(_,_,_,_,name, expr):
             #TODO: Check if variable is already declared
             if not ctx.has_var(name):
-                raise TypeError(f"Variable {name} doesn't exist")
+                raise TypeError(f"Line {node.line_start}: Variable {name} doesn't exist")
             
             var_type,can_define = ctx.get_type(name)
 
             if not can_define:
-                raise TypeError(f"Variable {name} is immutable")
+                raise TypeError(f"Line {node.line_start}: Variable {name} is immutable")
 
             expr_type = type_check(ctx, expr)
             if var_type != expr_type:
-                raise TypeError(f"Type mismatch for variable {name}, expected {var_type} but got {expr_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch for variable {name}, expected {var_type} but got {expr_type}")
             
-        case ArrayPositionAssignment(name, indexes, expr):
+        case ArrayPositionAssignment(_,_,_,_,name, indexes, expr):
             if not ctx.has_var(name):
-                raise TypeError(f"Variable {name} doesn't exist")
+                raise TypeError(f"Line {node.line_start}: Variable {name} doesn't exist")
             
             var_type, _ = ctx.get_type(name)
 
@@ -125,98 +127,98 @@ def type_check(ctx : Context, node) -> bool:
             for index in indexes:
                 index_type = type_check(ctx, index)
                 if index_type != IntType():
-                    raise TypeError(f"Type mismatch in {node}, index must be of type int but found {index_type}")
+                    raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, index must be of type int but found {index_type}")
                 
                 if not isinstance(res_type, ArrayType):
-                    raise TypeError(f"Type mismatch in {node}, expected array but got {res_type}")
+                    raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, expected array but got {res_type}")
 
                 res_type = res_type.type_
             
             expr_type = type_check(ctx, expr)
             if res_type != expr_type:
-                raise TypeError(f"Type mismatch in {node}, expected {res_type} but got {expr_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, expected {res_type} but got {expr_type}")
 
-        case Sub(left, right) | Mul(left, right) | Div(left, right) | Mod(left, right) | Power(left, right) | \
-                Add(left, right):
+        case Sub(_,_,_,_,_,left, right) | Mul(_,_,_,_,_,left, right) | Div(_,_,_,_,_,left, right) | Mod(_,_,_,_,_,left, right) | Power(_,_,_,_,_,left, right) | \
+                Add(_,_,_,_,_,left, right):
         
             left_type = type_check(ctx, left)
             right_type = type_check(ctx, right)
 
             wrong_type = left_type if left_type not in [IntType(), FloatType()] else right_type
             if wrong_type not in [IntType(), FloatType()]:
-                raise TypeError(f"Type mismatch in {node}, both operands must be both of numerical type but found {wrong_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, both operands must be both of numerical type but found {wrong_type}")
 
             if left_type != right_type:
-                raise TypeError(f"Type mismatch in {node}, both operands must be both of the same type but found {left_type} and {right_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, both operands must be both of the same type but found {left_type} and {right_type}")
 
             # Mod only accepts int
             if isinstance(node,Mod) and left_type != IntType():
-                raise TypeError(f"Type mismatch in {node}, both operands must be of type int but found {left_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, both operands must be of type int but found {left_type}")
             
             node.type_ = left_type
             return left_type
         
-        case Or(left, right) | And(left, right):
+        case Or(_,_,_,_,_,left, right) | And(_,_,_,_,_,left, right):
             
             left_type = type_check(ctx, left)
             right_type = type_check(ctx, right)
 
             wrong_type = left_type if left_type != BooleanType() else right_type
             if wrong_type != BooleanType():
-                raise TypeError(f"Type mismatch in {node}, both operands must be of type boolean but found {wrong_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, both operands must be of type boolean but found {wrong_type}")
             
             return BooleanType()
         
-        case Equal(left, right) | NotEqual(left, right):
+        case Equal(_,_,_,_,_,left, right) | NotEqual(_,_,_,_,_,left, right):
             
             left_type = type_check(ctx, left)
             right_type = type_check(ctx, right)
 
             if left_type != right_type:
-                raise TypeError(f"Type mismatch in {node}, both operands must be of the same type but found {left_type} and {right_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, both operands must be of the same type but found {left_type} and {right_type}")
             
             return BooleanType()
         
-        case GreaterThan(left, right) | GreaterThanOrEqual(left, right) | \
-            LessThan(left, right) | LessThanOrEqual(left, right):
+        case GreaterThan(_,_,_,_,_,left, right) | GreaterThanOrEqual(_,_,_,_,_,left, right) | \
+            LessThan(_,_,_,_,_,left, right) | LessThanOrEqual(_,_,_,_,_,left, right):
 
             left_type = type_check(ctx, left)
             right_type = type_check(ctx, right)
 
             wrong_type = left_type if left_type not in [IntType(), FloatType()] else right_type
             if wrong_type not in [IntType(), FloatType()]:
-                raise TypeError(f"Type mismatch in {node}, both operands must be both of numerical type but found {wrong_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, both operands must be both of numerical type but found {wrong_type}")
             
             if left_type != right_type:
-                raise TypeError(f"Type mismatch in {node}, both operands must be both of the same type but found {left_type} and {right_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, both operands must be both of the same type but found {left_type} and {right_type}")
             
             return BooleanType()
 
-        case UnaryMinus(expr):
+        case UnaryMinus(_,_,_,_,_,expr):
             expr_type = type_check(ctx, expr)
             if expr_type not in [IntType(), FloatType()]:
-                raise TypeError(f"Type mismatch in {node}, operand must be a number but found {expr_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, operand must be a number but found {expr_type}")
             
             node.type_ = expr_type
             return expr_type
         
-        case LogicNot(expr):
+        case LogicNot(_,_,_,_,_,expr):
             expr_type = type_check(ctx, expr)
             if expr_type != BooleanType():
-                raise TypeError(f"Type mismatch in {node}, operand must be of type boolean but found {expr_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, operand must be of type boolean but found {expr_type}")
             return BooleanType()
             
-        case ArrayAccess(name, indexes) | FunctionCallArrayAccess(name, indexes):
+        case ArrayAccess(_,_,_,_,_,name, indexes) | FunctionCallArrayAccess(_,_,_,_,_,name, indexes):
             res_type = None
             if isinstance(name, FunctionCall):
                 if not ctx.has_var(name.name):
-                    raise TypeError(f"Function {name.name} doesn't exist")
+                    raise TypeError(f"Line {node.line_start}: Function {name.name} doesn't exist")
 
                 res_type = type_check(ctx, name)
             else:
 
                 if not ctx.has_var(name):
-                    raise TypeError(f"Variable {name} doesn't exist")
+                    raise TypeError(f"Line {node.line_start}: Variable {name} doesn't exist")
                 
                 var_type,_ = ctx.get_type(name)
 
@@ -226,20 +228,20 @@ def type_check(ctx : Context, node) -> bool:
             for index in indexes:
                 index_type = type_check(ctx, index)
                 if index_type != IntType():
-                    raise TypeError(f"Type mismatch in {node}, index must be of type int but found {index_type}")
+                    raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, index must be of type int but found {index_type}")
                 
                 if not isinstance(res_type, ArrayType):
-                    raise TypeError(f"Type mismatch in {node}, expected array but got {res_type}")
+                    raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, expected array but got {res_type}")
                 res_type = res_type.type_
             
             # TODO: Access array, so return the type of the elem accessed
             node.type_ = res_type
             return res_type
 
-        case If(condition, block):
+        case If(_,_,_,_,condition, block):
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
-                raise TypeError(f"Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
             
             #TODO: entr block?
             ctx.enter_block()
@@ -247,10 +249,10 @@ def type_check(ctx : Context, node) -> bool:
                 type_check(ctx, statement)
             ctx.exit_block()
 
-        case IfElse(condition, block, else_block):
+        case IfElse(_,_,_,_,condition, block, else_block):
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
-                raise TypeError(f"Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
             
             #TODO: entr block?
             ctx.enter_block()
@@ -263,10 +265,10 @@ def type_check(ctx : Context, node) -> bool:
                 type_check(ctx, statement)
             ctx.exit_block()
         
-        case While(condition, block):
+        case While(_,_,_,_,condition, block):
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
-                raise TypeError(f"Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+                raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
             
             #TODO: entr block?
             ctx.enter_block()
@@ -277,23 +279,22 @@ def type_check(ctx : Context, node) -> bool:
         #TODO: Check if the function exists
         #TODO: Check if the arguments are correct
         #TODO: Check if the return type is correct
-        case FunctionCall(name, given_args):
-            
+        case FunctionCall(_,_,_,_,_,name, given_args):
             f_context,_ = ctx.get_function(name)
             
             name, params, type_ = f_context
             # TODO: Check if the number of arguments is correct
             if len(params) != len(given_args):
-                raise TypeError(f"Function {name} expects {len(params)} arguments but got {len(given_args)}")
+                raise TypeError(f"Line {node.line_start}: Function {name} expects {len(params)} arguments but got {len(given_args)}")
             
             for i, arg in enumerate(given_args):
                 arg_type = type_check(ctx, arg)
                 if arg_type != params[i].type_:
-                    raise TypeError(f"Type mismatch in {node}, expected {f_context[1][i].type_} but got {arg_type}")
+                    raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, expected {f_context[1][i].type_} but got {arg_type}")
             node.type_ = f_context[2]
             return f_context[2]
 
-        case FunctionDeclaration(name, params, type_):
+        case FunctionDeclaration(_,_,_,_,name, params, type_):
 
             
             f_context = (name,[],type_)
@@ -301,7 +302,7 @@ def type_check(ctx : Context, node) -> bool:
                 f_context[1].append(p)
             ctx.add_function(f_context)
 
-        case FunctionDefinition(name, params, type_, block):
+        case FunctionDefinition(_,_,_,_,name, params, type_, block):
             f_context = (name,params,type_)
 
 
@@ -311,14 +312,14 @@ def type_check(ctx : Context, node) -> bool:
                 f_declared,_ = ctx.get_type(name)
 
                 if len(f_declared[1]) != len(params):
-                    raise TypeError(f"Function {name} expects {len(f_declared[1])} arguments but got {len(params)}")
+                    raise TypeError(f"Line {node.line_start}: Function {name} expects {len(f_declared[1])} arguments but got {len(params)}")
                 
                 for i, p in enumerate(params):
                     if p.type_ != f_declared[1][i].type_:
-                        raise TypeError(f"Type mismatch in {node}, expected {f_declared[1][i].type_} but got {p.type_}")
+                        raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, expected {f_declared[1][i].type_} but got {p.type_}")
                     
                     if type(p) != type(f_declared[1][i]):
-                        raise TypeError(f"Type mismatch in {node}, expected {type(f_declared[1][i])} but got {type(p)}")
+                        raise TypeError(f"Line {node.line_start}: Type mismatch in {node}, expected {type(f_declared[1][i])} but got {type(p)}")
 
             ctx.enter_block()
 
@@ -340,19 +341,19 @@ def type_check(ctx : Context, node) -> bool:
 
             ctx.add_function(f_context, False)
 
-        case Id(name):
+        case Id(_,_,_,_,_,name):
             res = ctx.get_type(name)[0]
             node.type_ = res
             return res
-        case IntLit(value):
+        case IntLit(_,_,_,_,value):
             return IntType()
-        case BooleanLit(value):
+        case BooleanLit(_,_,_,_,value):
             return BooleanType()
-        case FloatLit(value):
+        case FloatLit(_,_,_,_,value):
             return FloatType()
-        case CharLit(value):
+        case CharLit(_,_,_,_,value):
             return CharType()
-        case String(value):
+        case String(_,_,_,_,value):
             return StringType()
         case _:
             raise TypeError(f"Unknown node type {node}")
@@ -369,7 +370,7 @@ if __name__ == "__main__":
     program = """
         val y: int := 1 + (1* true);
     """
-    file = open("my_program.pl","r")
+    file = open("/home/alexandref/compilers/plush_compiler/my_program.pl","r")
     program = file.read()
     # Example usage
     program_ast = parse_plush(program)
