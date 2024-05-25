@@ -135,7 +135,8 @@ def parse_plush(program : str):
     except LarkError as e:
         line = e.line
         column = e.column
-        raise SyntaxError(f"Syntax error at line {line}, column {column} in program") from e
+        column_end = column + len(e.token)
+        raise SyntaxError(f"Syntax error at line {line}, column {column} to {column_end} in program") 
 
 
 

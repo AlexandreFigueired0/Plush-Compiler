@@ -1,5 +1,1 @@
-function main(){
-    ifs true {
-
-    }
-}
+valx :int :=1;
