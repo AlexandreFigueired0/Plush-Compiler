@@ -83,11 +83,11 @@ plush_grammar = f"""
         | LSQUARE type RSQUARE -> array_type
     
 
-    FUNCTION: "function"
-    VAL: "val"
-    VAR: "var"
-    IF: "if"
-    WHILE: "while"
+    FUNCTION.4: /function\s+/
+    VAL.4: /val\s+/
+    VAR.4: /var\s+/
+    IF.4: "if"
+    WHILE.4: "while"
 
     SEMICOLON: ";"
     LSQUARE: "["
@@ -96,6 +96,7 @@ plush_grammar = f"""
     RBRACE: "}}"
     LPAREN: "("
     RPAREN: ")"
+    WHITESPACE: /[ \s]+/
 
     INT_TYPE: "int"
     FLOAT_TYPE: "float"
@@ -108,12 +109,14 @@ plush_grammar = f"""
     BOOLEAN.3: /true|false/
     STRING: /\"[^"]*\"/
     CHAR: /\'[^']\'/
-    NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
+    NAME.1: /[a-zA-Z_][a-zA-Z0-9_]*/
 
     COMMENT: /\#[^\n]+/x
 
     %import common.NEWLINE
-    %ignore /\s+/
+    %import common.WS_INLINE
+
+    %ignore WS_INLINE
     %ignore COMMENT
     %ignore NEWLINE
 
@@ -132,15 +135,8 @@ def parse_plush(program : str):
     except LarkError as e:
         line = e.line
         column = e.column
-        raise e
+        raise SyntaxError(f"Syntax error at line {line}, column {column} in program") from e
 
-import json
-from dataclasses import asdict, is_dataclass
-
-def node_to_json(node):
-    if not is_dataclass(node):
-        raise TypeError("Provided object is not a dataclass instance")
-    print (json.dumps(asdict(node), default=str))
 
 
 if __name__ == "__main__":

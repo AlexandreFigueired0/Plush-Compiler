@@ -85,8 +85,10 @@ class FunctionDefinition(Node):
     type_: Type = None
     block: list = None
 
+
     def __str__(self):
-        return f"function {self.name} ({', '.join(map(str, self.params))}) : {self.type_} {self.block}"
+        statements = "\n".join([str(statement) for statement in self.block])
+        return f"function {self.name} ({', '.join(map(str, self.params))}) : {self.type_} {statements}"
 
 
 @dataclass
