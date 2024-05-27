@@ -9,9 +9,11 @@ main:                                   # @main
 	subq	$24, %rsp
 	.cfi_def_cfa_offset 32
 	movq	$.L.pl_str_2, 16(%rsp)
-	movl	$.L.pl_str_2, %edi
-	callq	string_to_char_array@PLT
+	movl	$3, %edi
+	callq	get_char_array@PLT
 	movq	%rax, 8(%rsp)
+	movb	$49, (%rax)
+	movq	8(%rsp), %rax
 	movzbl	(%rax), %edi
 	callq	print_char@PLT
 	addq	$24, %rsp

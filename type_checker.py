@@ -45,16 +45,25 @@ class Context():
 def add_pre_def_funcs(ctx: Context):
     ctx.add_function(("print_int",[ValParam(name="x", type_ = IntType())],None), False)
     ctx.add_function(("print_float",[ValParam(name="x", type_ = FloatType())],None), False)
-    ctx.add_function(("print_boolean",[ValParam(name="x", type_ = BooleanType())],None), False)
     ctx.add_function(("print_string",[ValParam(name="s", type_ = StringType())],None), False)
     ctx.add_function(("print_char",[ValParam(name="c", type_ = CharType())],None), False)
+    ctx.add_function(("print_boolean",[ValParam(name="x", type_ = BooleanType())],None), False)
     ctx.add_function(("print_int_array",[ValParam(name="a", type_ = ArrayType(type_=IntType())), ValParam(name="size", type_=IntType())],None), False)
+    ctx.add_function(("print_float_array",[ValParam(name="a", type_ = ArrayType(type_=FloatType())), ValParam(name="size", type_=IntType())],None), False)
+    ctx.add_function(("print_string_array",[ValParam(name="a", type_ = ArrayType(type_=StringType())), ValParam(name="size", type_=IntType())],None), False)
+    ctx.add_function(("print_char_array",[ValParam(name="a", type_ = ArrayType(type_=CharType())), ValParam(name="size", type_=IntType())],None), False)
+    ctx.add_function(("print_boolean_array",[ValParam(name="a", type_ = ArrayType(type_=BooleanType())), ValParam(name="size", type_=IntType())],None), False)
     ctx.add_function(("string_to_char_array",[ValParam(name="s", type_ = StringType())],ArrayType(type_=CharType())), False)
     ctx.add_function(("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],None), False)
     ctx.add_function(("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType())), False)
     ctx.add_function(("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType())), False)
+    ctx.add_function(("get_char_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=CharType())), False)
+    ctx.add_function(("get_boolean_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=BooleanType())), False)
     ctx.add_function(("get_int_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(IntType()))), False)
+    ctx.add_function(("get_float_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(FloatType()))), False)
     ctx.add_function(("get_string_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(StringType()))), False)
+    ctx.add_function(("get_char_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(CharType()))), False)
+    ctx.add_function(("get_boolean_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(BooleanType()))), False)
 
 def gather_global_vars_and_funcs(ctx: Context, node):
     for global_node in node.defs_or_decls:

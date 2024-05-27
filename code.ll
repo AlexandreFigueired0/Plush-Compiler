@@ -48,12 +48,15 @@ define void @main() {
 	%x1 = alloca i8*
 	store i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.pl_str_2, i64 0, i64 0), i8** %x1
 	%x_a3 = alloca i8*
-	%tmp_4 = load i8*, i8** %x1
-	%string_to_char_array_5 = call i8* @string_to_char_array( i8*  %tmp_4 )
-	store i8* %string_to_char_array_5, i8** %x_a3
-	%tmp_6 = load i8*, i8** %x_a3
-	%x_a_idx_7 = getelementptr i8, i8* %tmp_6, i32 0
-	%tmp_8 = load i8, i8* %x_a_idx_7
-	call void @print_char( i8  %tmp_8 )
+	%get_char_array_4 = call i8* @get_char_array( i32  3 )
+	store i8* %get_char_array_4, i8** %x_a3
+	%tmp_5 = load i8*, i8** %x_a3
+	%x_a_idx_6 = getelementptr i8, i8* %tmp_5, i32 0
+	%tmp_7 = load i8, i8* %x_a_idx_6
+	store i8 49, i8* %x_a_idx_6
+	%tmp_8 = load i8*, i8** %x_a3
+	%x_a_idx_9 = getelementptr i8, i8* %tmp_8, i32 0
+	%tmp_10 = load i8, i8* %x_a_idx_9
+	call void @print_char( i8  %tmp_10 )
 	ret void
 }

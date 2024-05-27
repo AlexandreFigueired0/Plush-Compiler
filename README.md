@@ -8,56 +8,52 @@ Need -no-pier for compiling .ll files with clang
 
 ## Predefined functions
 
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
+print_int(val int x)
 
-print_int(int x)
+print_float(val float x)
 
-print_float(float x)
+print_string(val string s)
 
-print_string(string s)
+print_char(val char c)
 
-print_char(char c)
+print_boolean(val boolean x)
 
-print_boolean(boolean x)
+print_int_array(val [int] arr, val int size)
 
-print_int_array([int] arr, int size)
+print_float_array(val [float] arr, val int size)
 
-print_float_array([float] arr, int size)
+print_string_array(val [string] arr, val int size)
 
-print_string_array([string] arr, int size)
+print_char_array(val [char] arr, val int size)
 
-print_char_array([char] arr, int size)
+print_boolean_array(val [boolean] arr, val int size)
 
-print_boolean_array([boolean] arr, int size)
+power_int(val int base, val int e) : int
 
-power_int(int base, int e) : int
+power_float(val float base, val float e) : float
 
-power_float(float base, float e) : float
+get_int_array(val int size) : [int]
 
-get_int_array(int size) : [int]
+get_string_array(val int size) : [string]
 
-get_string_array(int size) : [string]
+get_float_array(val int size) : [float]
 
-get_float_array(int size) : [float]
+get_char_array(val int size) : [char]
 
-get_char_array(int size) : [char]
+get_boolean_array(val int size) : [boolean]
 
-get_boolean_array(int size) : [boolean]
+get_int_matrix(val int row, val int col) : [[int]]
 
-get_int_matrix(int row, int col) : [[int]]
+get_float_matrix(val int row, val int col) : [[float]]
 
-get_float_matrix(int row, int col) : [[float]]
+get_string_matrix(val int row, val int col) : [[string]]
 
-get_string_matrix(int row, int col) : [[string]]
+get_char_matrix(val int row, val int col) : [[char]]
 
-get_char_matrix(int row, int col) : [[char]]
-
-get_boolean_matrix(int row, int col) : [[boolean]]
+get_boolean_matrix(val int row, val int col) : [[boolean]]
 
 ## How to add new predefined functions
 
 1. Add a C implementaion of the function wanted, and added it to the file plush_functions.c
 2. Add the LLVM declaration of the function to the file pre_def_func.ll
-3. Go to the type*checker.py file and add the function to the Context in the function add_pred_def_funcs, like : ctx.add_function(("func_name",[ValParam(name="param1", type* = ParamType())],ReturnType()), False)
+3. Go to the type_checker.py file and add the function to the Context in the function add_pred_def_funcs, like : ctx.add_function(("func_name",[ValParam(name="param1", type* = ParamType())],ReturnType()), False)
