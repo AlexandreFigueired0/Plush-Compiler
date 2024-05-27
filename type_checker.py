@@ -49,6 +49,7 @@ def add_pre_def_funcs(ctx: Context):
     ctx.add_function(("print_string",[ValParam(name="s", type_ = StringType())],None), False)
     ctx.add_function(("print_char",[ValParam(name="c", type_ = CharType())],None), False)
     ctx.add_function(("print_int_array",[ValParam(name="a", type_ = ArrayType(type_=IntType())), ValParam(name="size", type_=IntType())],None), False)
+    ctx.add_function(("string_to_char_array",[ValParam(name="s", type_ = StringType())],ArrayType(type_=CharType())), False)
     ctx.add_function(("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],None), False)
     ctx.add_function(("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType())), False)
     ctx.add_function(("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType())), False)

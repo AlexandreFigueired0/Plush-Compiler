@@ -105,8 +105,6 @@ parser = Lark(plush_grammar,parser="lalr", transformer=PlushTree())
 # parser = Lark(plush_grammar,parser="lalr")
 
 
-
-
 def parse_plush(program : str):
     return parser.parse(program.strip())
 
