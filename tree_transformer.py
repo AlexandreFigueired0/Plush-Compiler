@@ -6,6 +6,13 @@ class PlushTree(Transformer):
 
     def start(self, *defs_or_decls):
         return Start(defs_or_decls)
+    
+    # IMPORT
+    def import_(self, from_tok, file : str, func_names : list):
+        return Import(file=file, func_names= func_names)
+    
+    def imported_functions(self, *names):
+        return list(names)
 
     # DECLARATIONS
 

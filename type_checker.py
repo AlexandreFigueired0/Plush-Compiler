@@ -18,6 +18,9 @@ class Context():
     def set_type(self, name, value, can_define=True):
         scope = self.stack[-1]
         scope[name] = (value, can_define)
+    
+    def has_function(self, name):
+        return name in self.functions
 
     def add_function(self,f_content, can_define=True):
         self.functions[f_content[0]] = (f_content, can_define)
@@ -73,16 +76,16 @@ def gather_global_vars_and_funcs(ctx: Context, node):
             # case ValDefinition(vname, type_, expr):
             #     ctx.set_type(vname, type_, False)
             case FunctionDeclaration(name, params, type_):
-                if ctx.has_var(name):
+                if ctx.has_function(name):
                     raise TypeError(f"Function {name} already declared")
                 
-                ctx.set_type(name, (name,params,type_))
+                ctx.add_function(name, (name,params,type_))
 
             case FunctionDefinition(name, params, type_, block):
-                if ctx.has_var(name) and ctx.get_type(name)[1] == False:
+                if ctx.has_function(name) and ctx.get_function(name)[1] == False:
                     raise TypeError(f"Function {name} already defined")
                 
-                ctx.set_type(name, (name,params,type_), False)
+                ctx.add_function((name,params,type_), False)
             case _:
                 pass
 
@@ -379,7 +382,7 @@ if __name__ == "__main__":
     program = """
         val y: int := 1 + (1* true);
     """
-    file = open("my_program.pl","r")
+    file = open("/home/alexandref/compilers/plush_compiler/my_program.pl","r")
     program = file.read()
     # Example usage
     program_ast = parse_plush(program)

@@ -14,6 +14,12 @@ class Expression(ABC):
 class Start:
     defs_or_decls: list
 
+# IMPORT
+
+@dataclass
+class Import:
+    file : str
+    func_names : list
 
 # DECLARATIONS
 

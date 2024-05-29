@@ -1,11 +1,15 @@
 from lark import Lark
 from tree_transformer import PlushTree
+from ast_nodes import *
+import sys
 
 
 
 plush_grammar = f"""
-    start: (function_declaration | val_definition | var_definition | function_definition)*
+    start: (function_declaration | val_definition | var_definition | function_definition | import_)*
 
+    ?import_: FROM NAME "import" imported_functions
+    imported_functions: NAME ("," NAME)*
     ?function_declaration: "function" NAME "(" params ")" (":" type)? ";" -> function_declaration
     ?function_definition: "function" NAME "(" params ")" (":" type)? block -> function_definition
     
@@ -90,6 +94,7 @@ plush_grammar = f"""
     STRING: /\"[^"]*\"/
     CHAR: /\'[^']\'/
     NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
+    FROM: "from"
 
     COMMENT: /\#[^\n]+/x
 
@@ -106,7 +111,27 @@ parser = Lark(plush_grammar,parser="lalr", transformer=PlushTree())
 
 
 def parse_plush(program : str):
-    return parser.parse(program.strip())
+    ast = parser.parse(program.strip())
+
+    # add imported functions to the tree
+    imported_functions = []
+    imported = set()
+    for node in ast.defs_or_decls:
+        if isinstance(node, Import):
+            file = open(node.file + ".pl","r")
+            other_ast = parser.parse(file.read())  
+            for function_name in node.func_names:
+                for other_node in other_ast.defs_or_decls:
+                    if isinstance(other_node, FunctionDefinition) and other_node.name == function_name:
+                        imported_functions.append(other_node)
+                        imported.add(function_name)
+                        break
+                if function_name not in imported:
+                    print(f"Function {function_name} not found in {node.file}")
+                    sys.exit(1)
+    ast.defs_or_decls = list(filter(lambda x: not isinstance(x, Import), ast.defs_or_decls))
+    ast.defs_or_decls += imported_functions
+    return ast
 
 if __name__ == "__main__":
     # Example usage:
@@ -117,5 +142,6 @@ if __name__ == "__main__":
     file = open("my_program.pl","r")
     program = file.read()
     tree = parse_plush(program)
+    # print(tree.pretty())
     for node in tree.defs_or_decls:
         print(node)
