@@ -1,5 +1,6 @@
 from lark import Lark, LarkError
 from tree_transformer import PlushTree
+import sys
 
 
 
@@ -136,7 +137,8 @@ def parse_plush(program : str):
         line = e.line
         column = e.column
         column_end = column + len(e.token)
-        raise SyntaxError(f"Syntax error at line {line}, column {column} to {column_end} in program") 
+        print(f"Syntax error at line {line}, column {column} to {column_end} in program") 
+        sys.exit(1)
 
 
 
