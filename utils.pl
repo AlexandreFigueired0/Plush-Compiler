@@ -1,3 +1,5 @@
+from utils2 import hello_world
+
 function print_matrix(val m : [[int]], val rows : int, val cols : int){
     var i : int := 0;
     while i < rows{
@@ -7,5 +9,5 @@ function print_matrix(val m : [[int]], val rows : int, val cols : int){
 }
 
 function hello(){
-    print_string("Hello, World!");
+    hello_world();
 }

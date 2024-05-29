@@ -118,8 +118,8 @@ def parse_plush(program : str):
     imported = set()
     for node in ast.defs_or_decls:
         if isinstance(node, Import):
-            file = open(node.file + ".pl","r")
-            other_ast = parser.parse(file.read())  
+            file = open("/home/alexandref/compilers/plush_compiler/" + node.file + ".pl","r")
+            other_ast = parse_plush(file.read())  
             for function_name in node.func_names:
                 for other_node in other_ast.defs_or_decls:
                     if isinstance(other_node, FunctionDefinition) and other_node.name == function_name:
