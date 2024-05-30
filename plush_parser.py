@@ -109,17 +109,15 @@ plush_grammar = f"""
 parser = Lark(plush_grammar,parser="lalr", transformer=PlushTree())
 # parser = Lark(plush_grammar,parser="lalr")
 
-
-def parse_plush(program : str):
-    ast = parser.parse(program.strip())
-
-    # add imported functions to the tree
-    imported_functions = []
-    imported = set()
+def import_functions(ast, imported_functions, imported):
+    """
+    Returns the given ast with the nodes of the definitions of the imported functions.
+    """
     for node in ast.defs_or_decls:
         if isinstance(node, Import):
-            file = open("/home/alexandref/compilers/plush_compiler/" + node.file + ".pl","r")
-            other_ast = parse_plush(file.read())  
+            file = open( "/home/alexandref/compilers/plush_compiler/" + node.file + ".pl","r")
+            other_ast = parser.parse(file.read().strip())
+            other_ast = import_functions(other_ast, imported_functions, imported)
             for function_name in node.func_names:
                 for other_node in other_ast.defs_or_decls:
                     if isinstance(other_node, FunctionDefinition) and other_node.name == function_name:
@@ -129,8 +127,18 @@ def parse_plush(program : str):
                 if function_name not in imported:
                     print(f"Function {function_name} not found in {node.file}")
                     sys.exit(1)
+    ast.defs_or_decls += tuple(imported_functions)
     ast.defs_or_decls = list(filter(lambda x: not isinstance(x, Import), ast.defs_or_decls))
-    ast.defs_or_decls += imported_functions
+    return ast
+
+
+def parse_plush(program : str):
+    ast = parser.parse(program.strip())
+
+    # add imported functions to the tree
+    imported_functions = []
+    imported = set()
+    ast = import_functions(ast, imported_functions, imported)
     return ast
 
 if __name__ == "__main__":
@@ -139,9 +147,10 @@ if __name__ == "__main__":
         val x : int;
     """
 
-    file = open("my_program.pl","r")
+    file = open("/home/alexandref/compilers/plush_compiler/my_program.pl","r")
     program = file.read()
     tree = parse_plush(program)
+    print()
     # print(tree.pretty())
     for node in tree.defs_or_decls:
         print(node)

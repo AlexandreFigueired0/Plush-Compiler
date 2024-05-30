@@ -1,4 +1,4 @@
-@.pl_str_1 = private unnamed_addr constant [14 x i8] c"Hello, World!\00" 
+@.pl_str_1 = private unnamed_addr constant [16 x i8] c"Hello, World!\n\00" 
 declare void @print_int(i32)
 
 declare void @print_float(float)
@@ -48,10 +48,14 @@ define void @main() {
 	call void @hello(  )
 	ret void
 }
-define void @hello() {
+define void @hello_world() {
 	%tmp_2 = alloca i8*
-	store i8* getelementptr inbounds ([14 x i8], [14 x i8]* @.pl_str_1, i64 0, i64 0), i8** %tmp_2
+	store i8* getelementptr inbounds ([16 x i8], [16 x i8]* @.pl_str_1, i64 0, i64 0), i8** %tmp_2
 	%tmp_3 = load i8*, i8** %tmp_2
 	call void @print_string( i8*  %tmp_3 )
+	ret void
+}
+define void @hello() {
+	call void @hello_world(  )
 	ret void
 }
