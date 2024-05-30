@@ -95,7 +95,6 @@ def type_check(ctx : Context, node) -> bool:
             add_pre_def_funcs(ctx)
 
             gather_global_vars_and_funcs(ctx, node)
-            print(ctx.functions)    
 
             for def_or_decl in defs_or_decls:
                 type_check(ctx, def_or_decl)

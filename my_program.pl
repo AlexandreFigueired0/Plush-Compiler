@@ -1,4 +1,4 @@
-from utils import hello
+from utils import *
 
 function main(){
     hello();

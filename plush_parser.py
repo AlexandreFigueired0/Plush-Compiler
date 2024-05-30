@@ -9,7 +9,7 @@ plush_grammar = f"""
     start: (function_declaration | val_definition | var_definition | function_definition | import_)*
 
     ?import_: FROM NAME "import" imported_functions
-    imported_functions: NAME ("," NAME)*
+    imported_functions: (NAME ("," NAME)*) | STAR
     ?function_declaration: "function" NAME "(" params ")" (":" type)? ";" -> function_declaration
     ?function_definition: "function" NAME "(" params ")" (":" type)? block -> function_definition
     
@@ -18,7 +18,7 @@ plush_grammar = f"""
                 | assignment
                 | array_position_assignment
     
-    ?assignment  : NAME ":=" expression ";" -> assignment
+    ?assignment : NAME ":=" expression ";" -> assignment
     ?array_position_assignment: NAME ("[" expression "]")+ ":=" expression ";"
 
     ?val_definition  : "val" NAME ":" type ":=" expression ";"
@@ -95,6 +95,7 @@ plush_grammar = f"""
     CHAR: /\'[^']\'/
     NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
     FROM: "from"
+    STAR: "*"
 
     COMMENT: /\#[^\n]+/x
 
@@ -109,24 +110,30 @@ plush_grammar = f"""
 parser = Lark(plush_grammar,parser="lalr", transformer=PlushTree())
 # parser = Lark(plush_grammar,parser="lalr")
 
-def import_functions(ast, imported_functions, imported):
+def import_functions(ast, imported_functions : list, imported):
     """
     Returns the given ast with the nodes of the definitions of the imported functions.
     """
     for node in ast.defs_or_decls:
         if isinstance(node, Import):
-            file = open( "/home/alexandref/compilers/plush_compiler/" + node.file + ".pl","r")
+            file = open( node.file + ".pl","r")
             other_ast = parser.parse(file.read().strip())
             other_ast = import_functions(other_ast, imported_functions, imported)
-            for function_name in node.func_names:
+            if node.func_names == ["*"]:
                 for other_node in other_ast.defs_or_decls:
-                    if isinstance(other_node, FunctionDefinition) and other_node.name == function_name:
+                    if isinstance(other_node, FunctionDefinition) and other_node not in imported_functions:
                         imported_functions.append(other_node)
-                        imported.add(function_name)
-                        break
-                if function_name not in imported:
-                    print(f"Function {function_name} not found in {node.file}")
-                    sys.exit(1)
+                        imported.add(other_node.name)
+            else:
+                for function_name in node.func_names:
+                    for other_node in other_ast.defs_or_decls:
+                        if isinstance(other_node, FunctionDefinition) and other_node.name == function_name:
+                            imported_functions.append(other_node)
+                            imported.add(function_name)
+                            break
+                    if function_name not in imported:
+                        print(f"Function {function_name} not found in {node.file}")
+                        sys.exit(1)
     ast.defs_or_decls += tuple(imported_functions)
     ast.defs_or_decls = list(filter(lambda x: not isinstance(x, Import), ast.defs_or_decls))
     return ast

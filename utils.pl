@@ -1,4 +1,4 @@
-from utils2 import hello_world
+from utils2 import *
 
 function test() : int {
     test := 1;

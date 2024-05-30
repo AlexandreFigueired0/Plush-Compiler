@@ -55,6 +55,18 @@ define void @hello_world() {
 	call void @print_string( i8*  %tmp_3 )
 	ret void
 }
+define i32 @test1() {
+	%test14 = alloca i32
+	store i32 1, i32* %test14
+	%tmp_5 = load i32, i32* %test14
+	ret i32 %tmp_5
+}
+define i32 @test() {
+	%test6 = alloca i32
+	store i32 1, i32* %test6
+	%tmp_7 = load i32, i32* %test6
+	ret i32 %tmp_7
+}
 define void @hello() {
 	call void @hello_world(  )
 	ret void

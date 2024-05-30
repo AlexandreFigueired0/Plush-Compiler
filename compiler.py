@@ -474,13 +474,12 @@ if __name__ == "__main__":
     typed_tree = type_check_program(fname)
     e = Emitter()
     llvm_code = compile(e, typed_tree)
-    print(llvm_code)
+    # print(llvm_code)
     with open("code.ll", "w") as f:
         f.write(llvm_code)
     import subprocess
 
     lib_flags = "-lm"
-    print()
     # /usr/local/opt/llvm/bin/lli code.ll
     r = subprocess.call(
         # "llc code.ll && clang code.s -o code -no-pie && ./code",
