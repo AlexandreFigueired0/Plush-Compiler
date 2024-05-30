@@ -20,7 +20,7 @@ def unparse(*tokens : list[Token|Node]):
         result[line][start:end] = list(token) if isinstance(token, Token) else list(token.text)
 
     # Join each line into a single string, then join all lines with line breaks
-    return "\n".join("".join(line).replace("\n", "") for line in result)
+    return "\n".join("".join(line).replace("\n", "") for line in result).strip()
 
 
 @v_args(inline=True)    # Affects the signatures of the methods
@@ -88,16 +88,19 @@ class PlushTree(Transformer):
         return FunctionDefinition(name = name.value, params = params, type_ = type_, block = block,
         line=function_tok.line, column=function_tok.column, end_line=rbracket_tok.end_line, end_column=rbracket_tok.end_column, text=text)
     
-    def assignment(self, name : Token, expr : Expression, semicolon_tok : Token):
+    def assignment(self, name : Token, assign_tok : Token ,expr : Expression, semicolon_tok : Token):
+        text = unparse(name, assign_tok, expr, semicolon_tok)
         return Assignment(name = name.value, expr = expr,
-        line=name.line, column=name.column, end_line=semicolon_tok.end_line, end_column=semicolon_tok.end_line)
+        line=name.line, column=name.column, end_line=semicolon_tok.end_line, end_column=semicolon_tok.end_column, text=text)
     
     def array_position_assignment(self, name : Token, *index_and_expr_and_sc : list):
         indexes:list = index_and_expr_and_sc[:-2]
         expr : Expression = index_and_expr_and_sc[-2]
         semicolon_tok : Token= index_and_expr_and_sc[-1]
+        indexes_text = "".join([f"[{index.text}]" for index in indexes])
+        text = f"{name.value}{indexes_text}"
         return ArrayPositionAssignment(name = name.value, indexes = indexes, expr = expr,
-        line=name.line, column=name.column, end_line=semicolon_tok.end_line, end_column=semicolon_tok.end_column)
+        line=name.line, column=name.column, end_line=semicolon_tok.end_line, end_column=name.end_column, text=text)
     
     def block(self, *statements):
         return list(statements)
@@ -129,8 +132,9 @@ class PlushTree(Transformer):
         return list(params)
 
     def function_call(self, name : Token, lparen_tok : Token ,args : list[Expression], rparen_tok : Token):
+        text = unparse(name, lparen_tok, *args, rparen_tok)
         return FunctionCall(name = name.value, args =  args , type_=None,
-        line=name.line, column=name.column, end_line=rparen_tok.end_line, end_column=rparen_tok.end_column)
+        line=name.line, column=name.column, end_line=rparen_tok.end_line, end_column=rparen_tok.end_column, text=text)
 
     
     # EXPRESSIONS
@@ -201,9 +205,12 @@ class PlushTree(Transformer):
     def array_access(self, name_or_fcall, *indexes: list[Expression]):
         if isinstance(name_or_fcall, FunctionCall):
             return FunctionCallArrayAccess(fcall =name_or_fcall, indexes=indexes, type_=None,
-        line=name_or_fcall.line, column=name_or_fcall.column, end_line=indexes[-1].line_end, end_column=indexes[-1].column_end)
+        line=name_or_fcall.line, column=name_or_fcall.column, end_line=indexes[-1].end_line, end_column=indexes[-1].end_column)
+
+        indexes_text = "".join([f"[{index.text}]" for index in indexes])
+        text = f"{name_or_fcall.value}{indexes_text}"
         return ArrayAccess(name = name_or_fcall, indexes = indexes, type_=None,
-        line=name_or_fcall.line, column=name_or_fcall.column, end_line=indexes[-1].line_end, end_column=indexes[-1].column_end)
+        line=name_or_fcall.line, column=name_or_fcall.column, end_line=indexes[-1].end_line, end_column=name_or_fcall.end_column, text=text)
 
     def id(self, name : Token):
         return Id(name = name.value, type_=None,

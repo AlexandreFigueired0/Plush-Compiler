@@ -2,6 +2,7 @@
 from ast_nodes import *
 from tree_transformer import PlushTree
 from plush_parser import parse_plush
+import sys
 
 
 class Context():
@@ -77,7 +78,6 @@ def gather_global_vars_and_funcs(ctx: Context, node):
             case _:
                 pass
 
-from dataclasses import asdict
 def type_check(ctx : Context, node) -> bool:
     match node:
         case Start(defs_or_decls):
@@ -88,11 +88,11 @@ def type_check(ctx : Context, node) -> bool:
             for def_or_decl in defs_or_decls:
                 type_check(ctx, def_or_decl)
             return node
-        case ValDefinition(_,_,_,_,name, type_, expr) | VarDefinition(_,_,_,_,name, type_, expr):
+        case ValDefinition(_,_,_,_,_,name, type_, expr) | VarDefinition(_,_,_,_,_,name, type_, expr):
 
             # Check if variable is already declared
             if ctx.has_var_in_current_scope(name):
-                raise NameError(f"Line {node.line}: Variable {name} already declared")
+                show_simple_error(node, f"Error: Variable {name} already declared" )
             
             expr_type = type_check(ctx, expr)
             # floats can be assigned with ints?
@@ -101,23 +101,23 @@ def type_check(ctx : Context, node) -> bool:
             
             # If its a val, then cant be redefined
             ctx.set_type(name, type_, not isinstance(node, ValDefinition))
-        case Assignment(_,_,_,_,name, expr):
+        case Assignment(_,_,_,_,_,name, expr):
             #TODO: Check if variable is already declared
             if not ctx.has_var(name):
-                raise TypeError(f"Line {node.line}: Variable {name} doesn't exist")
+                show_simple_error(node, f"Error: Variable {name} doesn't exist" )
             
             var_type,can_define = ctx.get_type(name)
 
             if not can_define:
-                raise TypeError(f"Line {node.line}: Variable {name} is immutable")
+                show_simple_error(node, f"Variable {name} is immutable" )
 
             expr_type = type_check(ctx, expr)
             if var_type != expr_type:
                 raise TypeError(f"Line {node.line}: Type mismatch for variable {name}, expected {var_type} but got {expr_type}")
             
-        case ArrayPositionAssignment(_,_,_,_,name, indexes, expr):
+        case ArrayPositionAssignment(_,_,_,_,_,name, indexes, expr):
             if not ctx.has_var(name):
-                raise TypeError(f"Line {node.line}: Variable {name} doesn't exist")
+                show_simple_error(node, f"Variable {name} doesn't exist" )
             
             var_type, _ = ctx.get_type(name)
 
@@ -138,8 +138,8 @@ def type_check(ctx : Context, node) -> bool:
             if res_type != expr_type:
                 raise TypeError(f"Line {node.line}: Type mismatch in {node}, expected {res_type} but got {expr_type}")
 
-        case Sub(_,_,_,_,_,left, right) | Mul(_,_,_,_,_,left, right) | Div(_,_,_,_,_,left, right) | Mod(_,_,_,_,_,left, right) | Power(_,_,_,_,_,left, right) | \
-                Add(_,_,_,_,_,left, right):
+        case Sub(_,_,_,_,_,_,left, right) | Mul(_,_,_,_,_,_,left, right) | Div(_,_,_,_,_,_,left, right) | Mod(_,_,_,_,_,_,left, right) | \
+            Power(_,_,_,_,_,_,left, right) | Add(_,_,_,_,_,_,left, right):
         
             left_type = type_check(ctx, left)
             right_type = type_check(ctx, right)
@@ -158,7 +158,7 @@ def type_check(ctx : Context, node) -> bool:
             node.type_ = left_type
             return left_type
         
-        case Or(_,_,_,_,_,left, right) | And(_,_,_,_,_,left, right):
+        case Or(_,_,_,_,_,_,left, right) | And(_,_,_,_,_,_,left, right):
             
             left_type = type_check(ctx, left)
             right_type = type_check(ctx, right)
@@ -169,7 +169,7 @@ def type_check(ctx : Context, node) -> bool:
             
             return BooleanType()
         
-        case Equal(_,_,_,_,_,left, right) | NotEqual(_,_,_,_,_,left, right):
+        case Equal(_,_,_,_,_,_,left, right) | NotEqual(_,_,_,_,_,_,left, right):
             
             left_type = type_check(ctx, left)
             right_type = type_check(ctx, right)
@@ -179,8 +179,8 @@ def type_check(ctx : Context, node) -> bool:
             
             return BooleanType()
         
-        case GreaterThan(_,_,_,_,_,left, right) | GreaterThanOrEqual(_,_,_,_,_,left, right) | \
-            LessThan(_,_,_,_,_,left, right) | LessThanOrEqual(_,_,_,_,_,left, right):
+        case GreaterThan(_,_,_,_,_,_,left, right) | GreaterThanOrEqual(_,_,_,_,_,_,left, right) | \
+            LessThan(_,_,_,_,_,_,left, right) | LessThanOrEqual(_,_,_,_,_,_,left, right):
 
             left_type = type_check(ctx, left)
             right_type = type_check(ctx, right)
@@ -194,7 +194,7 @@ def type_check(ctx : Context, node) -> bool:
             
             return BooleanType()
 
-        case UnaryMinus(_,_,_,_,_,expr):
+        case UnaryMinus(_,_,_,_,_,_,expr):
             expr_type = type_check(ctx, expr)
             if expr_type not in [IntType(), FloatType()]:
                 raise TypeError(f"Line {node.line}: Type mismatch in {node}, operand must be a number but found {expr_type}")
@@ -202,23 +202,22 @@ def type_check(ctx : Context, node) -> bool:
             node.type_ = expr_type
             return expr_type
         
-        case LogicNot(_,_,_,_,_,expr):
+        case LogicNot(_,_,_,_,_,_,expr):
             expr_type = type_check(ctx, expr)
             if expr_type != BooleanType():
                 raise TypeError(f"Line {node.line}: Type mismatch in {node}, operand must be of type boolean but found {expr_type}")
             return BooleanType()
             
-        case ArrayAccess(_,_,_,_,_,name, indexes) | FunctionCallArrayAccess(_,_,_,_,_,name, indexes):
+        case ArrayAccess(_,_,_,_,_,_,name, indexes) | FunctionCallArrayAccess(_,_,_,_,_,_,name, indexes):
             res_type = None
             if isinstance(name, FunctionCall):
                 if not ctx.has_var(name.name):
-                    raise TypeError(f"Line {node.line}: Function {name.name} doesn't exist")
+                    show_simple_error(name, f"Error: Function {name.name} doesn't exist" )
 
                 res_type = type_check(ctx, name)
             else:
-
                 if not ctx.has_var(name):
-                    raise TypeError(f"Line {node.line}: Variable {name} doesn't exist")
+                    show_simple_error(node, f"Error: Variable {name} doesn't exist" )
                 
                 var_type,_ = ctx.get_type(name)
 
@@ -231,14 +230,14 @@ def type_check(ctx : Context, node) -> bool:
                     raise TypeError(f"Line {node.line}: Type mismatch in {node}, index must be of type int but found {index_type}")
                 
                 if not isinstance(res_type, ArrayType):
-                    raise TypeError(f"Line {node.line}: Type mismatch in {node}, expected array but got {res_type}")
+                    raise TypeError(f"Line {node.line}: Type mismatch in {node}, expected array type but got {res_type}")
                 res_type = res_type.type_
             
             # TODO: Access array, so return the type of the elem accessed
             node.type_ = res_type
             return res_type
 
-        case If(_,_,_,_,condition, block):
+        case If(_,_,_,_,_,condition, block):
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
                 raise TypeError(f"Line {node.line}: Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
@@ -249,7 +248,7 @@ def type_check(ctx : Context, node) -> bool:
                 type_check(ctx, statement)
             ctx.exit_block()
 
-        case IfElse(_,_,_,_,condition, block, else_block):
+        case IfElse(_,_,_,_,_,condition, block, else_block):
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
                 raise TypeError(f"Line {node.line}: Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
@@ -265,7 +264,7 @@ def type_check(ctx : Context, node) -> bool:
                 type_check(ctx, statement)
             ctx.exit_block()
         
-        case While(_,_,_,_,condition, block):
+        case While(_,_,_,_,_,condition, block):
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
                 raise TypeError(f"Line {node.line}: Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
@@ -279,7 +278,7 @@ def type_check(ctx : Context, node) -> bool:
         #TODO: Check if the function exists
         #TODO: Check if the arguments are correct
         #TODO: Check if the return type is correct
-        case FunctionCall(_,_,_,_,_,name, given_args):
+        case FunctionCall(_,_,_,_,_,_,name, given_args):
             f_context,_ = ctx.get_function(name)
             
             name, params, type_ = f_context
@@ -294,7 +293,7 @@ def type_check(ctx : Context, node) -> bool:
             node.type_ = f_context[2]
             return f_context[2]
 
-        case FunctionDeclaration(_,_,_,_,name, params, type_):
+        case FunctionDeclaration(_,_,_,_,_,name, params, type_):
 
             
             f_context = (name,[],type_)
@@ -302,7 +301,7 @@ def type_check(ctx : Context, node) -> bool:
                 f_context[1].append(p)
             ctx.add_function(f_context)
 
-        case FunctionDefinition(_,_,_,_,name, params, type_, block):
+        case FunctionDefinition(_,_,_,_,_,name, params, type_, block):
             f_context = (name,params,type_)
 
 
@@ -341,22 +340,30 @@ def type_check(ctx : Context, node) -> bool:
 
             ctx.add_function(f_context, False)
 
-        case Id(_,_,_,_,_,name):
+        case Id(_,_,_,_,_,_,name):
             res = ctx.get_type(name)[0]
             node.type_ = res
             return res
-        case IntLit(_,_,_,_,value):
+        case IntLit(_,_,_,_,_,value):
             return IntType()
-        case BooleanLit(_,_,_,_,value):
+        case BooleanLit(_,_,_,_,_,value):
             return BooleanType()
-        case FloatLit(_,_,_,_,value):
+        case FloatLit(_,_,_,_,_,value):
             return FloatType()
-        case CharLit(_,_,_,_,value):
+        case CharLit(_,_,_,_,_,value):
             return CharType()
-        case String(_,_,_,_,value):
+        case String(_,_,_,_,_,value):
             return StringType()
         case _:
             raise TypeError(f"Unknown node type {node}")
+
+def show_simple_error(node, msg):
+    print(msg)
+    underline = f"{'^'*(node.end_column - node.column)}"
+    print(f"line {node.line}: {node.text}")
+    space = ' ' * (len(f"line {node.line}: "))
+    print(f"{space}{underline}")
+    sys.exit(1)
 
 
 def type_check_program(filename):
@@ -377,4 +384,4 @@ if __name__ == "__main__":
     # print(tree_to_string(program_ast))
     typed_tree = type_check(Context(), program_ast)
     for node in typed_tree.defs_or_decls:
-        print(node)
+        print(node.text)
