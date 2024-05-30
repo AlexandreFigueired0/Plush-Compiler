@@ -1,2 +1,3 @@
-val x :int :=1;
-val x :int :=2;
+function main(val x : int) : int {
+    val y : int := 0;
+}

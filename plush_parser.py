@@ -7,8 +7,8 @@ import sys
 plush_grammar = f"""
     start: (function_declaration | val_definition | var_definition | function_definition)*
 
-    ?function_declaration: FUNCTION NAME "(" params ")" (":" type)? SEMICOLON -> function_declaration
-    ?function_definition: FUNCTION NAME "(" params ")" (":" type)? block -> function_definition
+    !?function_declaration: FUNCTION NAME "(" params ")" (":" type)? SEMICOLON -> function_declaration
+    !?function_definition: FUNCTION NAME "(" params ")" (":" type)? block -> function_definition
     
     ?definition : val_definition
                 | var_definition
@@ -18,30 +18,30 @@ plush_grammar = f"""
     ?assignment  : NAME ":=" expression SEMICOLON -> assignment
     ?array_position_assignment: NAME ("[" expression "]")+ ":=" expression SEMICOLON
 
-    ?val_definition  : VAL NAME ":" type ":=" expression SEMICOLON
-    ?var_definition  : VAR NAME ":" type  ":=" expression SEMICOLON
+    !?val_definition  : VAL NAME ":" type ":=" expression SEMICOLON
+    !?var_definition  : VAR NAME ":" type  ":=" expression SEMICOLON
     
-    params: param ("," param)*
+    !params: param ("," param)*
             |
-    param  : VAL NAME ":" type  -> val_param
+    !param  : VAL NAME ":" type  -> val_param
             | VAR NAME ":" type  -> var_param
 
-    block: LBRACE ( val_definition | var_definition | assignment | array_position_assignment | statement | (function_call ";") )* RBRACE
+    !block: LBRACE ( val_definition | var_definition | assignment | array_position_assignment | statement | (function_call ";") )* RBRACE
 
-    ?statement  : IF  expression block -> if_
+    !?statement  : IF  expression block -> if_
                 | IF  expression block "else" block -> if_else
                 | WHILE expression block -> while_
                 
     
-    ?expression  : logic_less_priority
+    !?expression  : logic_less_priority
 
-    ?logic_less_priority : logic_high_priority
+    !?logic_less_priority : logic_high_priority
                         | logic_less_priority "||" logic_high_priority -> or_
     
-    ?logic_high_priority : clause
+    !?logic_high_priority : clause
                         | logic_high_priority "&&" clause -> and_
     
-    ?clause  : arith_less_priority
+    !?clause  : arith_less_priority
             | arith_less_priority "=" arith_less_priority -> equal
             | arith_less_priority "!=" arith_less_priority -> not_equal
             | arith_less_priority "<" arith_less_priority -> lt
@@ -49,17 +49,17 @@ plush_grammar = f"""
             | arith_less_priority "<=" arith_less_priority -> lte
             | arith_less_priority ">=" arith_less_priority -> gte
     
-    ?arith_less_priority : arith_high_priority
+    !?arith_less_priority : arith_high_priority
                         | arith_less_priority "+" arith_high_priority   -> add
                         | arith_less_priority "-" arith_high_priority   -> sub
 
-    ?arith_high_priority : atom
+    !?arith_high_priority : atom
                         | arith_high_priority "^" arith_high_priority -> power
                         | arith_high_priority "*" atom  -> mul
                         | arith_high_priority "/" atom  -> div
                         | arith_high_priority "%" atom  -> mod
     
-    ?atom    : INT       -> int_lit
+    !?atom    : INT       -> int_lit
             | FLOAT     -> float_lit
             | BOOLEAN   -> boolean_lit
             | NAME      -> id
@@ -71,12 +71,12 @@ plush_grammar = f"""
             | array_access 
             | function_call
 
-    function_call: NAME LPAREN concrete_params RPAREN
-    ?array_access: (NAME|function_call) ("[" expression "]")+
-    concrete_params: expression ("," expression)*  
+    !function_call: NAME LPAREN concrete_params RPAREN
+    !?array_access: (NAME|function_call) ("[" expression "]")+
+    !concrete_params: expression ("," expression)*  
                     |
     
-    type: INT_TYPE -> int_type
+    !type: INT_TYPE -> int_type
         | FLOAT_TYPE -> float_type
         | STRING_TYPE -> string_type
         | CHAR_TYPE -> char_type
@@ -137,7 +137,7 @@ def parse_plush(program : str):
         line = e.line
         column = e.column
         column_end = column + len(e.token)
-        print(f"Syntax error at line {line}, column {column} to {column_end} in program") 
+        print(f"Unknow token ({e.token}) at line {line}, column {column} to {column_end} in program") 
         sys.exit(1)
 
 
@@ -153,4 +153,4 @@ if __name__ == "__main__":
     tree = parse_plush(program)
     # print(tree.pretty())
     for node in tree.defs_or_decls:
-        print(node)
+        print(node.text)
