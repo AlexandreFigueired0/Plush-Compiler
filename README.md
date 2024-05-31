@@ -6,6 +6,8 @@ Using LLVM 14.0
 
 Need -no-pier for compiling .ll files with clang
 
+git repo: https://github.com/AlexandreFigueired0/Plush-Compiler
+
 ## Project Structure
 
 1. plush_parser.py: Contains the logic of the parser. It's where the grammar and the logic for the imports are.
