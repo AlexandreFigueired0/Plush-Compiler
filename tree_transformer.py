@@ -132,7 +132,11 @@ class PlushTree(Transformer):
         return list(params)
 
     def function_call(self, name : Token, lparen_tok : Token ,args : list[Expression], rparen_tok : Token):
-        text = unparse(name, lparen_tok, *args, rparen_tok)
+        text_args = []
+        for a in args:
+            text_args.append(a)
+            text_args.append(Token("COMMA", ",", line=a.line, column=a.end_column, end_line=a.end_line, end_column=a.end_column+1))
+        text = unparse(name, lparen_tok, *text_args, rparen_tok)
         return FunctionCall(name = name.value, args =  args , type_=None,
         line=name.line, column=name.column, end_line=rparen_tok.end_line, end_column=rparen_tok.end_column, text=text)
 

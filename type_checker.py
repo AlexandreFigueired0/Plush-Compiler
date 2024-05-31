@@ -230,10 +230,10 @@ def type_check(ctx : Context, node) -> bool:
             for index in indexes:
                 index_type = type_check(ctx, index)
                 if index_type != IntType():
-                    raise TypeError(f"Line {node.line}: Type mismatch in {node}, index must be of type int but found {index_type}")
+                    show_simple_error(node, f"Error: Type mismatch in {node.text}, index must be of type int but found {index_type.text}" )
                 
                 if not isinstance(res_type, ArrayType):
-                    raise TypeError(f"Line {node.line}: Type mismatch in {node}, expected array type but got {res_type}")
+                    show_simple_error(node, f"Error: Type mismatch in {node.text}, expected array type but got {res_type.text}" )
                 res_type = res_type.type_
             
             # TODO: Access array, so return the type of the elem accessed
@@ -243,7 +243,7 @@ def type_check(ctx : Context, node) -> bool:
         case If(_,_,_,_,_,condition, block):
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
-                raise TypeError(f"Line {node.line}: Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+                show_simple_error(condition, f"Error: Type mismatch in if condition, condition must be of type boolean but found {condition_type.text}" )
             
             #TODO: entr block?
             ctx.enter_block()
@@ -254,7 +254,7 @@ def type_check(ctx : Context, node) -> bool:
         case IfElse(_,_,_,_,_,condition, block, else_block):
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
-                raise TypeError(f"Line {node.line}: Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+                show_simple_error(condition, f"Error: Type mismatch in if condition, condition must be of type boolean but found {condition_type.text}" )
             
             #TODO: entr block?
             ctx.enter_block()
@@ -270,7 +270,7 @@ def type_check(ctx : Context, node) -> bool:
         case While(_,_,_,_,_,condition, block):
             condition_type = type_check(ctx, condition)
             if condition_type != BooleanType():
-                raise TypeError(f"Line {node.line}: Type mismatch in {node}, condition must be of type boolean but found {condition_type}")
+                show_simple_error(condition, f"Error: Type mismatch in if condition, condition must be of type boolean but found {condition_type.text}" )
             
             #TODO: entr block?
             ctx.enter_block()
@@ -287,12 +287,12 @@ def type_check(ctx : Context, node) -> bool:
             name, params, type_ = f_context
             # TODO: Check if the number of arguments is correct
             if len(params) != len(given_args):
-                raise TypeError(f"Line {node.line}: Function {name} expects {len(params)} arguments but got {len(given_args)}")
+                show_simple_error(node, f"Error: Function {name} expects {len(params)} arguments but got {len(given_args)}" )
             
             for i, arg in enumerate(given_args):
                 arg_type = type_check(ctx, arg)
                 if arg_type != params[i].type_:
-                    raise TypeError(f"Line {node.line}: Type mismatch in {node}, expected {f_context[1][i].type_} but got {arg_type}")
+                    show_simple_error(node, f"Error: Type mismatch in {node.text} parameters, expected {f_context[1][i].type_.text} but got {arg_type.text}" )
             node.type_ = f_context[2]
             return f_context[2]
 
@@ -310,18 +310,24 @@ def type_check(ctx : Context, node) -> bool:
 
             # Function declared, but not defined
             # TODO: Check if the arguments are correct, type and immut modifiers
-            if ctx.has_var(name) and ctx.get_type(name)[1] == True:
-                f_declared,_ = ctx.get_type(name)
+            if ctx.has_function(name) and ctx.get_function(name)[1] == True:
+                f_declared,_ = ctx.get_function(name) # 0: name; 1: params; 2: type
 
                 if len(f_declared[1]) != len(params):
-                    raise TypeError(f"Line {node.line}: Function {name} expects {len(f_declared[1])} arguments but got {len(params)}")
+                    print(f"Error: Function {name} expects {len(f_declared[1])} arguments but got {len(params)}" )
+                    print(f"line {node.line}: {node.text}")
+                    sys.exit(1)
                 
                 for i, p in enumerate(params):
                     if p.type_ != f_declared[1][i].type_:
-                        raise TypeError(f"Line {node.line}: Type mismatch in {node}, expected {f_declared[1][i].type_} but got {p.type_}")
+                        print(f"Error: Type mismatch in {node.name} definition, expected {f_declared[1][i].type_.text} but got {p.type_.text}" )
+                        print(f"line {node.line}: {node.text}")
+                        sys.exit(1)
                     
                     if type(p) != type(f_declared[1][i]):
-                        raise TypeError(f"Line {node.line}: Type mismatch in {node}, expected {type(f_declared[1][i])} but got {type(p)}")
+                        print(f"Error: Type mismatch in {node.name}, expected {type(f_declared[1][i])} but got {type(p)}" )
+                        print(f"line {node.line}: {node.text}")
+                        sys.exit(1)
 
             ctx.enter_block()
 
