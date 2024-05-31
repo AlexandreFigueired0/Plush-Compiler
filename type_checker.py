@@ -20,6 +20,9 @@ class Context():
         scope = self.stack[-1]
         scope[name] = (value, can_define)
 
+    def has_function(self, name):
+        return name in self.functions
+
     def add_function(self,f_content, can_define=True):
         self.functions[f_content[0]] = (f_content, can_define)
     
@@ -50,11 +53,11 @@ class Context():
         self.add_function(("print_string",[ValParam(name="s", type_ = StringType())],None), False)
         self.add_function(("print_char",[ValParam(name="c", type_ = CharType())],None), False)
         self.add_function(("print_int_array",[ValParam(name="a", type_ = ArrayType(type_=IntType())), ValParam(name="size", type_=IntType())],None), False)
-        self.add_function(("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],None), False)
-        self.add_function(("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType())), False)
-        self.add_function(("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType())), False)
-        self.add_function(("get_int_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=IntType()))), False)
-        self.add_function(("get_string_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=StringType()))), False)
+        self.add_function(("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],IntType()), False)
+        self.add_function(("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType(), text="[int]")), False)
+        self.add_function(("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType(), text="[string]")), False)
+        self.add_function(("get_int_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=IntType()), text="[[int]]")), False)
+        self.add_function(("get_string_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=StringType()), text="[[string]]")), False)
 
 
 def gather_global_vars_and_funcs(ctx: Context, node):
@@ -97,7 +100,7 @@ def type_check(ctx : Context, node) -> bool:
             expr_type = type_check(ctx, expr)
             # floats can be assigned with ints?
             if type_ != expr_type :
-                raise TypeError(f"Line {node.line}: Type mismatch for variable {name}, expected {type_} but got {expr_type}")
+                show_mismatch_error(node, type_, expr, f"Error: Type mismatch for variable {name}, expected {type_.text} but got {expr_type.text}")
             
             # If its a val, then cant be redefined
             ctx.set_type(name, type_, not isinstance(node, ValDefinition))
@@ -113,7 +116,7 @@ def type_check(ctx : Context, node) -> bool:
 
             expr_type = type_check(ctx, expr)
             if var_type != expr_type:
-                raise TypeError(f"Line {node.line}: Type mismatch for variable {name}, expected {var_type} but got {expr_type}")
+                show_simple_error(node, f"Error: Type mismatch for variable {name}, expected {var_type.text} but got {expr_type.text}" )
             
         case ArrayPositionAssignment(_,_,_,_,_,name, indexes, expr):
             if not ctx.has_var(name):
@@ -122,21 +125,21 @@ def type_check(ctx : Context, node) -> bool:
             var_type, _ = ctx.get_type(name)
 
             
-            #TODO: Check if the indexes are valid and go deeper in the type
+            #Check if the indexes are valid and go deeper in the type
             res_type = var_type
             for index in indexes:
                 index_type = type_check(ctx, index)
                 if index_type != IntType():
-                    raise TypeError(f"Line {node.line}: Type mismatch in {node}, index must be of type int but found {index_type}")
+                    show_simple_error(node, f"Error: Type mismatch in {node.text}, index must be of type int but found {index_type}" )
                 
                 if not isinstance(res_type, ArrayType):
-                    raise TypeError(f"Line {node.line}: Type mismatch in {node}, expected array but got {res_type}")
+                    show_simple_error(node, f"Error: Type mismatch in {node.text}, expected array but got {res_type.text}")
 
                 res_type = res_type.type_
             
             expr_type = type_check(ctx, expr)
             if res_type != expr_type:
-                raise TypeError(f"Line {node.line}: Type mismatch in {node}, expected {res_type} but got {expr_type}")
+                show_simple_error(node, f"Error: Type mismatch in {node.text}, expected {res_type} but got {res_type.text}")
 
         case Sub(_,_,_,_,_,_,left, right) | Mul(_,_,_,_,_,_,left, right) | Div(_,_,_,_,_,_,left, right) | Mod(_,_,_,_,_,_,left, right) | \
             Power(_,_,_,_,_,_,left, right) | Add(_,_,_,_,_,_,left, right):
@@ -211,7 +214,7 @@ def type_check(ctx : Context, node) -> bool:
         case ArrayAccess(_,_,_,_,_,_,name, indexes) | FunctionCallArrayAccess(_,_,_,_,_,_,name, indexes):
             res_type = None
             if isinstance(name, FunctionCall):
-                if not ctx.has_var(name.name):
+                if not ctx.has_function(name.name):
                     show_simple_error(name, f"Error: Function {name.name} doesn't exist" )
 
                 res_type = type_check(ctx, name)
@@ -356,6 +359,16 @@ def type_check(ctx : Context, node) -> bool:
             return StringType()
         case _:
             raise TypeError(f"Unknown node type {node}")
+
+def show_mismatch_error(node,type_, expr, msg):
+    print(msg)
+    print(f"line {node.line}: {node.text}")
+    type_underline = f"{'^'*(type_.end_column - type_.column)}"
+    type_space = ' ' * (len(f"line {node.line}: ") + type_.column - node.column)
+    expr_underline = f"{'^'*(expr.end_column - expr.column)}"
+    expr_space = ' ' * ( expr.column - type_.end_column)
+    print(f"{type_space}{type_underline}{expr_space}{expr_underline}")
+    sys.exit(1)
 
 def show_simple_error(node, msg):
     print(msg)

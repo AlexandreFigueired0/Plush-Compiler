@@ -125,31 +125,31 @@ class While(Node):
 
 @dataclass
 class IntType(Type):
-    text = "int"
+    text : str= "int"
     def __eq__(self, other):
         return isinstance(other, IntType)
 
 @dataclass
 class FloatType(Type):
-    text = "float"
+    text : str= "float"
     def __eq__(self, other):
         return isinstance(other, FloatType)
 
 @dataclass
 class BooleanType(Type):
-    text = "boolean"
+    text : str = "boolean"
     def __eq__(self, other):
         return isinstance(other, BooleanType)
 
 @dataclass
 class StringType(Type):
-    text = "string"
+    text : str = "string"
     def __eq__(self, other):
         return isinstance(other, StringType)
 
 @dataclass
 class CharType(Type):
-    text = "char"
+    text : str = "char"
     def __eq__(self, other):
         return isinstance(other, CharType)
 
@@ -159,7 +159,7 @@ class ArrayType(Type):
     type_: Type = None
 
 
-    text = f"[{type_.value}]" if type_ else "[]"
+    text : str= f"[{type_.text}]" if type_ else "[]"
     
     def __eq__(self, other):
         if isinstance(other, ArrayType):
@@ -302,34 +302,28 @@ class FunctionCallArrayAccess(Expression):
 @dataclass
 class Id(Expression):
     name: str = None
-    text = name
 
 @dataclass
 class IntLit(Expression):
     value: int= None
-    text = value
 
     
 
 @dataclass
 class FloatLit(Expression):
     value: float = None
-    text = value
 
 @dataclass
 class CharLit(Expression):
     value: str = None
-    text = value
 
 
 @dataclass
 class BooleanLit(Expression):
     value: bool = None
-    text = value
 
 
 @dataclass
 class String(Expression):
     value: str = None
-    text = value
 

@@ -35,13 +35,13 @@ plush_grammar = f"""
     
     ?expression  : logic_less_priority
 
-    ?logic_less_priority : logic_high_priority
+    !?logic_less_priority : logic_high_priority
                         | logic_less_priority "||" logic_high_priority -> or_
     
-    ?logic_high_priority : clause
+    !?logic_high_priority : clause
                         | logic_high_priority "&&" clause -> and_
     
-    ?clause  : arith_less_priority
+    !?clause  : arith_less_priority
             | arith_less_priority "=" arith_less_priority -> equal
             | arith_less_priority "!=" arith_less_priority -> not_equal
             | arith_less_priority "<" arith_less_priority -> lt
@@ -49,17 +49,17 @@ plush_grammar = f"""
             | arith_less_priority "<=" arith_less_priority -> lte
             | arith_less_priority ">=" arith_less_priority -> gte
     
-    ?arith_less_priority : arith_high_priority
+    !?arith_less_priority : arith_high_priority
                         | arith_less_priority "+" arith_high_priority   -> add
                         | arith_less_priority "-" arith_high_priority   -> sub
 
-    ?arith_high_priority : atom
+    !?arith_high_priority : atom
                         | arith_high_priority "^" arith_high_priority -> power
                         | arith_high_priority "*" atom  -> mul
                         | arith_high_priority "/" atom  -> div
                         | arith_high_priority "%" atom  -> mod
     
-    ?atom    : INT       -> int_lit
+    !?atom    : INT       -> int_lit
             | FLOAT     -> float_lit
             | BOOLEAN   -> boolean_lit
             | NAME      -> id

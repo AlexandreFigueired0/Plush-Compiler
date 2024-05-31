@@ -100,7 +100,7 @@ class PlushTree(Transformer):
         indexes_text = "".join([f"[{index.text}]" for index in indexes])
         text = f"{name.value}{indexes_text}"
         return ArrayPositionAssignment(name = name.value, indexes = indexes, expr = expr,
-        line=name.line, column=name.column, end_line=semicolon_tok.end_line, end_column=name.end_column, text=text)
+        line=name.line, column=name.column, end_line=semicolon_tok.end_line, end_column= name.column + len(indexes_text)+1, text=text)
     
     def block(self, *statements):
         return list(statements)
@@ -138,79 +138,96 @@ class PlushTree(Transformer):
 
     
     # EXPRESSIONS
-    def or_(self, left : Expression, right : Expression):
+    def or_(self, left : Expression, or_tok : Token,right : Expression):
+        text = unparse(left, or_tok, right)
         return Or(left = left, right = right, type_=BooleanType(line=0, column=0, end_line=0, end_column=0),
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def and_(self, left : Expression, right : Expression):
+    def and_(self, left : Expression,and_tok : Token, right : Expression):
+        text = unparse(left, and_tok, right)
         return And(left = left, right = right, type_=BooleanType(line=0, column=0, end_line=0, end_column=0),
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def equal(self, left : Expression, right : Expression):
+    def equal(self, left : Expression, eq_tok : Token, right : Expression):
+        text = unparse(left, eq_tok, right)
         return Equal(left = left, right = right, type_=BooleanType(line=0, column=0, end_line=0, end_column=0),
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def not_equal(self, left : Expression, right : Expression):
+    def not_equal(self, left : Expression, neq_tok : Token, right : Expression):
+        text = unparse(left, neq_tok, right)
         return NotEqual(left = left, right = right, type_=BooleanType(line=0, column=0, end_line=0, end_column=0),
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def lt(self, left : Expression, right : Expression):
+    def lt(self, left : Expression, lt_tok: Token, right : Expression):
+        text = unparse(left, lt_tok, right)
         return LessThan(left = left, right = right, type_=BooleanType(line=0, column=0, end_line=0, end_column=0),
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def gt(self, left : Expression, right : Expression):
+    def gt(self, left : Expression, gt_tok: Token, right : Expression):
+        text = unparse(left, gt_tok, right)
         return GreaterThan(left = left, right = right, type_=BooleanType(line=0, column=0, end_line=0, end_column=0),
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def lte(self, left : Expression, right : Expression):
+    def lte(self, left : Expression, lte_tok : Token, right : Expression):
+        text = unparse(left, lte_tok, right)
         return LessThanOrEqual(left = left, right = right, type_=BooleanType(line=0, column=0, end_line=0, end_column=0),
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_colum, text=text)
     
-    def gte(self, left : Expression, right : Expression):
+    def gte(self, left : Expression,gte_tok : Token, right : Expression):
+        text = unparse(left, gte_tok, right)
         return GreaterThanOrEqual(left = left, right = right, type_=BooleanType(line=0, column=0, end_line=0, end_column=0),
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def add(self, left : Expression, right : Expression):
+    def add(self, left : Expression, add_tok : Token ,right : Expression):
+        text = unparse(left, add_tok, right)
         return Add(left = left, right = right, type_=None,
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def sub(self, left : Expression, right : Expression):
+    def sub(self, left : Expression, sub_tok:Token, right : Expression):
+        text = unparse(left, sub_tok, right)
         return Sub(left = left, right = right, type_=None,
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def power(self, left : Expression, right : Expression):
+    def power(self, left : Expression,power_tok : Token, right : Expression):
+        text = unparse(left, power_tok, right)
         return Power(left = left, right = right, type_=None,
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def mul(self, left : Expression, right : Expression):
+    def mul(self, left : Expression, muk_tok : Token, right : Expression):
+        text = unparse(left, muk_tok, right)
         return Mul(left = left, right = right, type_=None,
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def div(self, left : Expression, right : Expression):
+    def div(self, left : Expression, div_tok: Token, right : Expression):
+        text = unparse(left, div_tok, right)
         return Div(left = left, right = right, type_=None,
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def mod(self, left : Expression, right : Expression):
+    def mod(self, left : Expression, mod_tok : Token, right : Expression):
+        text = unparse(left, mod_tok, right)
         return Mod(left = left, right = right, type_=IntType(line=0, column=0, end_line=0, end_column=0),
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
-    def unary_minus(self, expr : Expression):
+    def unary_minus(self, um_tok:Token, expr : Expression):
+        text = unparse(um_tok, expr)
         return UnaryMinus(expr = expr, type_=None,
-        line=expr.line, column=expr.column, end_line=expr.end_line, end_column=expr.end_column)
+        line=expr.line, column=um_tok.column, end_line=expr.end_line, end_column=expr.end_column, text=text)
     
-    def not_(self, expr : Expression):
+    def not_(self, not_tok:Token, expr : Expression):
+        text = unparse(not_tok, expr)
         return LogicNot(expr = expr, type_=None,
-        line=expr.line, column=expr.column, end_line=expr.end_line, end_column=expr.end_column)
+        line=expr.line, column=not_tok.column, end_line=expr.end_line, end_column=expr.end_column, text=text)
     
     def array_access(self, name_or_fcall, *indexes: list[Expression]):
-        if isinstance(name_or_fcall, FunctionCall):
-            return FunctionCallArrayAccess(fcall =name_or_fcall, indexes=indexes, type_=None,
-        line=name_or_fcall.line, column=name_or_fcall.column, end_line=indexes[-1].end_line, end_column=indexes[-1].end_column)
-
         indexes_text = "".join([f"[{index.text}]" for index in indexes])
+        if isinstance(name_or_fcall, FunctionCall):
+            text = f"{name_or_fcall.text}{indexes_text}"
+            return FunctionCallArrayAccess(fcall =name_or_fcall, indexes=indexes, type_=None,
+        line=name_or_fcall.line, column=name_or_fcall.column, end_line=indexes[-1].end_line, end_column=name_or_fcall.column + len(text), text=text)
+
         text = f"{name_or_fcall.value}{indexes_text}"
         return ArrayAccess(name = name_or_fcall, indexes = indexes, type_=None,
-        line=name_or_fcall.line, column=name_or_fcall.column, end_line=indexes[-1].end_line, end_column=name_or_fcall.end_column, text=text)
+        line=name_or_fcall.line, column=name_or_fcall.column, end_line=indexes[-1].end_line, end_column=name_or_fcall.column + len(indexes_text)+1, text=text)
 
     def id(self, name : Token):
         return Id(name = name.value, type_=None,
