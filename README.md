@@ -8,14 +8,14 @@ Need -no-pier for compiling .ll files with clang
 
 ## Project Structure
 
-plush_parser.py: Contains the logic of the parser. It's where the grammar and the logic for the imports are.
-ast_nodes.py: Contains the definition of the nodes the AST. Also contains the function to represent a node as JSN.
-tree_transformer.py: Contains the logic of how to build the AST, with the rules of the grammar in (plush_parser.py). Here is also where the logic of unparsing nodes and storing their positions in the program is, for the purpose of showing better error messages.
-type_checker.py: Contains the logic of checking the semantics of the program. Uses the data processed in tree_transformer.py to display better error messages.
-interpreter.py: Incomplete implementation of an interpreter for plush. Only used to test if the AST structure was correct, thus being incomplete.
-plush_functions.c: Contains the C implementation of the predefined functions in plush.
-pre_def_funcs.ll: Contains the declarations of the plush predefined functions, in LLVM IR format
-compiler.py: Contains the logic to generate the LLVM code, from the AST, and runs the result.
+1. plush_parser.py: Contains the logic of the parser. It's where the grammar and the logic for the imports are.
+2. ast_nodes.py: Contains the definition of the nodes the AST. Also contains the function to represent a node as JSN.
+3. tree_transformer.py: Contains the logic of how to build the AST, with the rules of the grammar in (plush_parser.py). Here is also where the logic of unparsing nodes and storing their positions in the program is, for the purpose of showing better error messages.
+4. type_checker.py: Contains the logic of checking the semantics of the program. Uses the data processed in tree_transformer.py to display better error messages.
+5. interpreter.py: Incomplete implementation of an interpreter for plush. Only used to test if the AST structure was correct, thus being incomplete.
+6. plush_functions.c: Contains the C implementation of the predefined functions in plush.
+7. pre_def_funcs.ll: Contains the declarations of the plush predefined functions, in LLVM IR format
+8. compiler.py: Contains the logic to generate the LLVM code, from the AST, and runs the result.
 
 ## How to use
 
