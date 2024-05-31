@@ -20,7 +20,7 @@ Need -no-pier for compiling .ll files with clang
 ## How to use
 
 run './setup.sh' to build the container that has the compiler
-run ./plush <program_file> <--tree>
+run ./plush <--tree> <program_file>
 
 The <program_file> is the file where your main function.
 The <--tree> arg is optional, use in case you want to see a JSON representation of the programs AST.
@@ -32,7 +32,7 @@ Example of usage:
 1. Write a plush program in a file named my_program.pl
 2. run ./setup.sh
 3. run ./plush my_program.pl
-4. If you want to see the program's AST in a JSON format, run ./plush my_program.pl --tree
+4. If you want to see the program's AST in a JSON format, run ./plush --tree my_program.pl
 
 ## Predefined functions
 
