@@ -92,5 +92,5 @@ get_boolean_matrix(val int row, val int col) : [[boolean]]
 
 ### Extras
 
-1. You can import functions from other .pl files, by adding to your code 'from file_name import functions', you can type \* to import all functions of the file
+1. You can import functions from other .pl files, by adding to your code 'from file_name import functions', you can type \* to import all functions of the file. An example on how to use this is, with a file called utils.pl that has the function hello() you can import it in antoher file with 'from utils import hello'.
 2. There are error messages so you can understand more clearly whats the problem.
