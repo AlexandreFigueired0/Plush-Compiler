@@ -73,7 +73,7 @@ get_boolean_matrix(val int row, val int col) : [[boolean]]
 
 ## How to add new predefined functions
 
-1. Add a C implementaion of the function wanted, and added it to the file plush_functions.c
+1. Write a C implementation of the function wanted, and add it to the file plush_functions.c
 2. Add the LLVM declaration of the function to the file pre_def_func.ll
 3. Go to the type_checker.py file and add the function to the Context in the function add_pred_def_funcs, like : ctx.add_function(("func_name",[ValParam(name="param1", type* = ParamType())],ReturnType()), False)
 
