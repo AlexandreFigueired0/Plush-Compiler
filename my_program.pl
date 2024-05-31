@@ -1,1 +1,3 @@
-val x : int := "ola";
+function main(){
+    val x : int := 1;
+}

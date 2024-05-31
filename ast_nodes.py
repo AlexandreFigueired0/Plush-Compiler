@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from abc import ABC
 
 # All fields have default value, because it will be easier to create instances of these classes
@@ -333,3 +333,7 @@ class BooleanLit(Expression):
 class String(Expression):
     value: str = None
 
+import json
+
+def node_to_json(node):
+    return json.dumps(asdict(node), default=str,  indent=4)

@@ -467,7 +467,7 @@ def compile(emitter: Emitter, node):
         
         case _:
             raise TypeError(f"Unknown node type {node}")
-
+        
 
 if __name__ == "__main__":
     fname = sys.argv[1]
@@ -487,5 +487,7 @@ if __name__ == "__main__":
         # "lli code.ll",
         shell=True,
     )
+    if("--tree" in sys.argv):
+        print(node_to_json(typed_tree))
     print()
 
