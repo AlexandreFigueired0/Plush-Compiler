@@ -470,7 +470,7 @@ def compile(emitter: Emitter, node):
         
 
 if __name__ == "__main__":
-    fname = sys.argv[1]
+    fname = sys.argv[-1]
     typed_tree = type_check_program(fname)
     e = Emitter()
     llvm_code = compile(e, typed_tree)
