@@ -65,7 +65,9 @@ void print_boolean_array(int* arr, int size){
     printf("\n");
 }
 
-
+char* string_to_char_array(char* s){
+    return s;
+}
 
 int power_int(int base, int e){
     return pow(base,e);

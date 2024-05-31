@@ -1,14 +1,17 @@
 from lark import Lark, LarkError
 from tree_transformer import PlushTree
+from ast_nodes import *
 import sys
 
 
 
 plush_grammar = f"""
-    start: (function_declaration | val_definition | var_definition | function_definition)*
+    start: (function_declaration | val_definition | var_definition | function_definition | import_)*
 
     !?function_declaration: FUNCTION NAME "(" params ")" (":" type)? SEMICOLON -> function_declaration
     !?function_definition: FUNCTION NAME "(" params ")" (":" type)? block -> function_definition
+    ?import_: FROM NAME "import" imported_functions
+    imported_functions: (NAME ("," NAME)*) | STAR
     
     ?definition : val_definition
                 | var_definition
@@ -26,10 +29,10 @@ plush_grammar = f"""
     !param  : VAL NAME ":" type  -> val_param
             | VAR NAME ":" type  -> var_param
 
-    !block: LBRACE ( val_definition | var_definition | assignment | array_position_assignment | statement | (function_call ";") )* RBRACE
+    block: LBRACE ( val_definition | var_definition | assignment | array_position_assignment | statement | (function_call ";") )* RBRACE
 
-    !?statement  : IF  expression block -> if_
-                | IF  expression block "else" block -> if_else
+    !?statement : IF  expression block ELSE block -> if_else
+                | IF  expression block -> if_
                 | WHILE expression block -> while_
                 
     
@@ -59,6 +62,7 @@ plush_grammar = f"""
                         | arith_high_priority "/" atom  -> div
                         | arith_high_priority "%" atom  -> mod
     
+    ?parenthesized_expression: "(" expression ")"
     !?atom    : INT       -> int_lit
             | FLOAT     -> float_lit
             | BOOLEAN   -> boolean_lit
@@ -67,7 +71,7 @@ plush_grammar = f"""
             | CHAR      -> char_lit
             | "-" atom -> unary_minus
             | "!" atom -> not_
-            | "(" logic_less_priority ")"     
+            | parenthesized_expression     
             | array_access 
             | function_call
 
@@ -88,6 +92,7 @@ plush_grammar = f"""
     VAL.4: /val\s+/
     VAR.4: /var\s+/
     IF.4: "if"
+    ELSE.4: "else"
     WHILE.4: "while"
 
     SEMICOLON: ";"
@@ -111,13 +116,15 @@ plush_grammar = f"""
     STRING: /\"[^"]*\"/
     CHAR: /\'[^']\'/
     NAME.1: /[a-zA-Z_][a-zA-Z0-9_]*/
+    FROM: "from"
+    STAR: "*"
 
     COMMENT: /\#[^\n]+/x
 
     %import common.NEWLINE
     %import common.WS_INLINE
 
-    %ignore WS_INLINE
+    %ignore /\s+/
     %ignore COMMENT
     %ignore NEWLINE
 
@@ -127,20 +134,51 @@ plush_grammar = f"""
 parser = Lark(plush_grammar,parser="lalr", transformer=PlushTree())
 # parser = Lark(plush_grammar,parser="lalr")
 
-
+def import_functions(ast, imported_functions : list, imported):
+    """
+    Returns the given ast with the nodes of the definitions of the imported functions.
+    """
+    for node in ast.defs_or_decls:
+        if isinstance(node, Import):
+            file = open( node.file + ".pl","r")
+            other_ast = parser.parse(file.read().strip())
+            other_ast = import_functions(other_ast, imported_functions, imported)
+            if node.func_names == ["*"]:
+                for other_node in other_ast.defs_or_decls:
+                    if isinstance(other_node, FunctionDefinition) and other_node not in imported_functions:
+                        imported_functions.append(other_node)
+                        imported.add(other_node.name)
+            else:
+                for function_name in node.func_names:
+                    for other_node in other_ast.defs_or_decls:
+                        if isinstance(other_node, FunctionDefinition) and other_node.name == function_name:
+                            imported_functions.append(other_node)
+                            imported.add(function_name)
+                            break
+                    if function_name not in imported:
+                        print(f"Function {function_name} not found in {node.file}")
+                        sys.exit(1)
+    ast.defs_or_decls += tuple(imported_functions)
+    ast.defs_or_decls = list(filter(lambda x: not isinstance(x, Import), ast.defs_or_decls))
+    return ast
 
 
 def parse_plush(program : str):
     try:
-        return parser.parse(program.strip())
+        ast = parser.parse(program.strip())
     except LarkError as e:
         line = e.line
         column = e.column
         column_end = column + len(e.token)
-        print(f"Unknow token ({e.token}) at line {line}, column {column} to {column_end} in program") 
+        print(f"Unexpected token ({e.token}) at line {line}, column {column} to {column_end} in program") 
         sys.exit(1)
 
 
+    # add imported functions to the tree
+    imported_functions = []
+    imported = set()
+    ast = import_functions(ast, imported_functions, imported)
+    return ast
 
 if __name__ == "__main__":
     # Example usage:
@@ -148,9 +186,10 @@ if __name__ == "__main__":
         val x : int;
     """
 
-    file = open("my_program.pl","r")
+    file = open("/home/alexandref/compilers/plush_compiler/my_program.pl","r")
     program = file.read()
     tree = parse_plush(program)
+    print()
     # print(tree.pretty())
     for node in tree.defs_or_decls:
         print(node.text)

@@ -18,6 +18,8 @@ declare void @print_char_array(i8*, i32)
 
 declare void @print_boolean_array(i1*, i32)
 
+declare i8* @string_to_char_array(i8*)
+
 declare i32 @power_int(i32 , i32)
 
 declare float @power_float(float,float)

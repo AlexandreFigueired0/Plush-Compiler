@@ -81,7 +81,7 @@ def first_traversal(emitter, node: Start):
     """
     for global_node in node.defs_or_decls:
         match global_node:
-            case VarDefinition(_,_,_,_,vname, type_, expr) | ValDefinition(_,_,_,_,vname, type_, expr):
+            case VarDefinition(_,_,_,_,_,vname, type_, expr) | ValDefinition(_,_,_,_,_,vname, type_, expr):
                 emitter.decl_var(vname)
                 llvm_type = plush_type_to_llvm_type(type_)
                 pname = emitter.get_pointer_name(vname)
@@ -133,31 +133,31 @@ def plush_type_to_llvm_type(type_):
 
 def get_llvm_operation(node):
     match node:
-        case Add(_,_,_,_,t,l,r):
+        case Add(_,_,_,_,_,t,l,r):
             return "add" if t == IntType() else "fadd"
-        case Sub(_,_,_,_,t,l,r):
+        case Sub(_,_,_,_,_,t,l,r):
             return "sub" if t == IntType() else "fsub"
-        case Mul(_,_,_,_,t,l,r):
+        case Mul(_,_,_,_,_,t,l,r):
             return "mul" if t == IntType() else "fmul"
-        case Div(_,_,_,_,t,l,r):
+        case Div(_,_,_,_,_,t,l,r):
             return "sdiv" if t == IntType() else "fdiv"
-        case Mod(_,_,_,_,t,l,r):
+        case Mod(_,_,_,_,_,t,l,r):
             return "srem"
-        case Equal(_,_,_,_,t,l,r):
+        case Equal(_,_,_,_,_,t,l,r):
             return "eq" if l.type_ == IntType() else "oeq"
-        case NotEqual(_,_,_,_,t,l,r):
+        case NotEqual(_,_,_,_,_,t,l,r):
             return "ne" if l.type_ == IntType() else "une"
-        case LessThan(_,_,_,_,t,l,r):
+        case LessThan(_,_,_,_,_,t,l,r):
             return "slt" if l.type_ == IntType() else "olt"
-        case LessThanOrEqual(_,_,_,_,t,l,r):
+        case LessThanOrEqual(_,_,_,_,_,t,l,r):
             return "sle" if l.type_ == IntType() else "ole"
-        case GreaterThan(_,_,_,_,t,l,r):
+        case GreaterThan(_,_,_,_,_,t,l,r):
             return "sgt" if l.type_ == IntType() else "ogt"
-        case GreaterThanOrEqual(_,_,_,_,t,l,r):
+        case GreaterThanOrEqual(_,_,_,_,_,t,l,r):
             return "sge" if l.type_ == IntType() else "oge"
-        case And(_,_,_,_,t,l,r):
+        case And(_,_,_,_,_,t,l,r):
             return "and"
-        case Or(_,_,_,_,t,l,r):
+        case Or(_,_,_,_,_,t,l,r):
             return "or"
         case _:
             raise ValueError(f"Unknown node {node}")
@@ -180,7 +180,7 @@ def compile(emitter: Emitter, node):
 
             return emitter.get_code()
         
-        case ValDefinition(_,_,_,_,vname, type_, expr) | VarDefinition(_,_,_,_,vname, type_, expr):
+        case ValDefinition(_,_,_,_,_,vname, type_, expr) | VarDefinition(_,_,_,_,_,vname, type_, expr):
             if emitter.is_in_global_context(): return
 
             emitter.decl_var(vname)
@@ -190,12 +190,12 @@ def compile(emitter: Emitter, node):
             emitter << f"\t{pname} = alloca {llvm_type}"
 
             emitter << emitter.get_llvm_code_to_store(expr, pname, llvm_type)
-        case Assignment(_,_,_,_,vname, expr):
+        case Assignment(_,_,_,_,_,vname, expr):
             pname = emitter.get_pointer_name(vname)
             llvm_type = plush_type_to_llvm_type(expr.type_)
 
             emitter << emitter.get_llvm_code_to_store(expr, pname, llvm_type)
-        case ArrayPositionAssignment(_,_,_,_,name, indexes, expr):
+        case ArrayPositionAssignment(_,_,_,_,_,name, indexes, expr):
             array_ptr = "%" + emitter.get_temp()
             pname = emitter.get_pointer_name(name)
 
@@ -219,7 +219,7 @@ def compile(emitter: Emitter, node):
             
             emitter << emitter.get_llvm_code_to_store(expr, pos_ptr, llvm_type)
 
-        case If(_,_,_,_,cond, block):
+        case If(_,_,_,_,_,cond, block):
             compiled_cond  = compile(emitter, cond)
             then_count = emitter.get_count()
             end_count = emitter.get_count()
@@ -234,7 +234,7 @@ def compile(emitter: Emitter, node):
 
             emitter << f"if_end{end_count}:"
 
-        case IfElse(_,_,_,_,cond, then_block, else_block):
+        case IfElse(_,_,_,_,_,cond, then_block, else_block):
             compiled_cond  = compile(emitter, cond)
             then_count = emitter.get_count()
             else_count = emitter.get_count()
@@ -258,7 +258,7 @@ def compile(emitter: Emitter, node):
 
             emitter << f"if_end{end_count}:"
         
-        case While(_,_,_,_,cond, block):
+        case While(_,_,_,_,_,cond, block):
             while_cond_count = emitter.get_count()
             while_body_count = emitter.get_count() 
             while_end_count = emitter.get_count()
@@ -277,7 +277,7 @@ def compile(emitter: Emitter, node):
 
             emitter << f"while_end{while_end_count}:"
 
-        case FunctionCall(_,_,_,_,type_,name, args):
+        case FunctionCall(_,_,_,_,_,type_,name, args):
             args_compiled = []
 
             for arg in args:
@@ -306,10 +306,10 @@ def compile(emitter: Emitter, node):
             else:
                 emitter << f"\t{llvm_function_call}"
             return call_ret_reg
-        case FunctionDeclaration(_,_,_,_,name, params, type_):
+        case FunctionDeclaration(_,_,_,_,_,name, params, type_):
             #TODO: pass?
             pass
-        case FunctionDefinition(_,_,_,_,fname, params, type_, block):
+        case FunctionDefinition(_,_,_,_,_,fname, params, type_, block):
             emitter.enter_block()
             llvm_params = ", ".join([f"{plush_type_to_llvm_type(param.type_)} %{param.name}" for param in params])
             param_allocation = []
@@ -350,8 +350,8 @@ def compile(emitter: Emitter, node):
 
             emitter << "}"
             emitter.exit_block()
-        case Add(_,_,_,_,type_,left, right) | Sub(_,_,_,_,type_,left, right) | Mul(_,_,_,_,type_,left, right) |\
-                Div(_,_,_,_,type_,left, right) | Mod(_,_,_,_,type_,left, right):
+        case Add(_,_,_,_,_,type_,left, right) | Sub(_,_,_,_,_,type_,left, right) | Mul(_,_,_,_,_,type_,left, right) |\
+                Div(_,_,_,_,_,type_,left, right) | Mod(_,_,_,_,_,type_,left, right):
             l = compile(emitter, left)
             r = compile(emitter, right)
             ret_reg = "%" + emitter.get_temp()
@@ -360,7 +360,7 @@ def compile(emitter: Emitter, node):
 
             emitter << f"\t{ret_reg} = {operator} {llvm_type} {l}, {r}"
             return ret_reg
-        case Power(_,_,_,_,type_,base, exponent):
+        case Power(_,_,_,_,_,type_,base, exponent):
             b = compile(emitter, base)
             e = compile(emitter, exponent)
             ret_reg = "%" + emitter.get_temp()
@@ -370,7 +370,7 @@ def compile(emitter: Emitter, node):
             else:
                 emitter << f"\t{ret_reg} = call i32 @power_int(i32 {b}, i32 {e})"
             return ret_reg
-        case Or(_,_,_,_,_,left, right)| And(_,_,_,_,_,left,right) :
+        case Or(_,_,_,_,_,_,left, right)| And(_,_,_,_,_,_,left,right) :
             l = compile(emitter, left)
             r = compile(emitter, right)
 
@@ -378,12 +378,12 @@ def compile(emitter: Emitter, node):
             ret_reg = "%" + emitter.get_temp()
             emitter << f"\t{ret_reg} = {operator} i1 {l}, {r}"
             return ret_reg
-        case LogicNot(_,_,_,_,_,expr):
+        case LogicNot(_,_,_,_,_,_,expr):
             compiled_expr = compile(emitter, expr)
             ret_reg = "%" + emitter.get_temp()
             emitter << f"\t{ret_reg} = xor i1 {compiled_expr}, 1"
             return ret_reg
-        case UnaryMinus(_,_,_,_,_,expr):
+        case UnaryMinus(_,_,_,_,_,_,expr):
             compiled_expr = compile(emitter, expr)
             ret_reg = "%" + emitter.get_temp()
             llvm_type = plush_type_to_llvm_type(expr.type_)
@@ -395,9 +395,9 @@ def compile(emitter: Emitter, node):
             else:
                 emitter << f"\t{ret_reg} = sub {llvm_type} 0, {compiled_expr}"
             return ret_reg
-        case LessThan(_,_,_,_,_,left, right) | LessThanOrEqual(_,_,_,_,_,left, right) |\
-                GreaterThan(_,_,_,_,_,left, right) | GreaterThanOrEqual(_,_,_,_,_,left, right) |\
-                Equal(_,_,_,_,_,left, right) | NotEqual(_,_,_,_,_,left, right):
+        case LessThan(_,_,_,_,_,_,left, right) | LessThanOrEqual(_,_,_,_,_,_,left, right) |\
+                GreaterThan(_,_,_,_,_,_,left, right) | GreaterThanOrEqual(_,_,_,_,_,_,left, right) |\
+                Equal(_,_,_,_,_,_,left, right) | NotEqual(_,_,_,_,_,_,left, right):
             l = compile(emitter, left)
             r = compile(emitter, right)
             ret_reg = "%" + emitter.get_temp()
@@ -406,7 +406,7 @@ def compile(emitter: Emitter, node):
             llvm_type = plush_type_to_llvm_type(left.type_)
             emitter << f"\t{ret_reg} = {llvm_cmp} {operator} {llvm_type} {l}, {r}"
             return ret_reg
-        case ArrayAccess(_,_,_,_,type_,name, indexes) | FunctionCallArrayAccess(_,_,_,_,type_,name, indexes):
+        case ArrayAccess(_,_,_,_,_,type_,name, indexes) | FunctionCallArrayAccess(_,_,_,_,_,type_,name, indexes):
             llvm_type = plush_type_to_llvm_type(type_)
             stars = "*" * len(indexes)
             ret_reg = None
@@ -439,20 +439,20 @@ def compile(emitter: Emitter, node):
             
             return ret_reg
 
-        case Id(_,_,_,_,type_,vname):
+        case Id(_,_,_,_,_,type_,vname):
             ret_reg = "%" + emitter.get_temp()
             pname = emitter.get_pointer_name(vname)
 
             llvm_type = plush_type_to_llvm_type(type_)
             emitter << f"\t{ret_reg} = load {llvm_type}, {llvm_type}* {pname}"
             return ret_reg
-        case IntLit(_,_,_,_,_,value):
+        case IntLit(_,_,_,_,_,_,value):
             return value
-        case FloatLit(_,_,_,_,_,value):
+        case FloatLit(_,_,_,_,_,_,value):
             return float_to_llvm(float(value))
-        case CharLit(_,_,_,_,_,value):
+        case CharLit(_,_,_,_,_,_,value):
             return ord(value)
-        case String(_,_,_,_,_,value):
+        case String(_,_,_,_,_,_,value):
             if emitter.has_string(value):
                 return emitter.get_string_reg(value)
 
@@ -462,7 +462,7 @@ def compile(emitter: Emitter, node):
             emitter.lines.insert(0, str_decl)
             emitter.add_string(value, str_name)
             return str_name
-        case BooleanLit(_,_,_,_,_,value):
+        case BooleanLit(_,_,_,_,_,_,value):
             return value
         
         case _:
@@ -474,13 +474,12 @@ if __name__ == "__main__":
     typed_tree = type_check_program(fname)
     e = Emitter()
     llvm_code = compile(e, typed_tree)
-    print(llvm_code)
+    # print(llvm_code)
     with open("code.ll", "w") as f:
         f.write(llvm_code)
     import subprocess
 
     lib_flags = "-lm"
-    print()
     # /usr/local/opt/llvm/bin/lli code.ll
     r = subprocess.call(
         # "llc code.ll && clang code.s -o code -no-pie && ./code",

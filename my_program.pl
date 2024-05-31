@@ -1,4 +1,1 @@
-function foo(var x : int);
-
-function foo(val x : int) {
-}
+val x : int := "ola";

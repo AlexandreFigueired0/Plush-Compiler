@@ -28,6 +28,13 @@ class PlushTree(Transformer):
 
     def start(self, *defs_or_decls):
         return Start(defs_or_decls)
+    
+    # IMPORT
+    def import_(self, from_tok, file : str, func_names : list):
+        return Import(file=file, func_names= func_names)
+    
+    def imported_functions(self, *names):
+        return list(names)
 
     # DECLARATIONS
 
@@ -42,6 +49,7 @@ class PlushTree(Transformer):
             type_ = None
             semicolon_tok = type_sc[0]
             text = unparse(fucntion_tok, name, lparen_tok, *params, rparen_tok, semicolon_tok)
+        params = list(filter(lambda x: isinstance(x,(ValParam,VarParam)), params))
         return FunctionDeclaration(name = name.value, params = params, type_ = type_,
         line=fucntion_tok.line, column=fucntion_tok.column, end_line=semicolon_tok.end_line, end_column=semicolon_tok.end_column, text=text)
     
@@ -55,7 +63,7 @@ class PlushTree(Transformer):
 
     def var_param(self, var_tok: Token,name : Token, colon_tok : Token, type_ : Type):
         text = unparse(var_tok, name, colon_tok, type_)
-        return VarParam(name = name, type_ = type_,
+        return VarParam(name = name.value, type_ = type_,
         line=var_tok.line, column=var_tok.column, end_line=type_.end_line, end_column=type_.end_column, text = text)
     
     # DEFINITIONS
@@ -85,6 +93,7 @@ class PlushTree(Transformer):
 
         rbracket_tok : Token = block[-1]
         block = block[1:-1]
+        params = list(filter(lambda x: isinstance(x,(ValParam,VarParam)), params))
         return FunctionDefinition(name = name.value, params = params, type_ = type_, block = block,
         line=function_tok.line, column=function_tok.column, end_line=rbracket_tok.end_line, end_column=rbracket_tok.end_column, text=text)
     
@@ -114,7 +123,7 @@ class PlushTree(Transformer):
         return If(condition=condition, block=block,
         line=if_tok.line, column=if_tok.column, end_line=rbracket_tok.end_line, end_column=rbracket_tok.end_column)
 
-    def if_else(self, if_tok : Token, condition: Expression, block: list, else_block: list):
+    def if_else(self, if_tok : Token, condition: Expression, block: list, else_tok:Token, else_block: list):
         
         last_rsqure_tok = else_block[-1]
         block = block[1:-1]
@@ -175,7 +184,7 @@ class PlushTree(Transformer):
     def lte(self, left : Expression, lte_tok : Token, right : Expression):
         text = unparse(left, lte_tok, right)
         return LessThanOrEqual(left = left, right = right, type_=BooleanType(line=0, column=0, end_line=0, end_column=0),
-        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_colum, text=text)
+        line=left.line, column=left.column, end_line=right.end_line, end_column=right.end_column, text=text)
     
     def gte(self, left : Expression,gte_tok : Token, right : Expression):
         text = unparse(left, gte_tok, right)
@@ -230,7 +239,7 @@ class PlushTree(Transformer):
         line=name_or_fcall.line, column=name_or_fcall.column, end_line=indexes[-1].end_line, end_column=name_or_fcall.column + len(text), text=text)
 
         text = f"{name_or_fcall.value}{indexes_text}"
-        return ArrayAccess(name = name_or_fcall, indexes = indexes, type_=None,
+        return ArrayAccess(name = name_or_fcall.value, indexes = indexes, type_=None,
         line=name_or_fcall.line, column=name_or_fcall.column, end_line=indexes[-1].end_line, end_column=name_or_fcall.column + len(indexes_text)+1, text=text)
 
     def id(self, name : Token):

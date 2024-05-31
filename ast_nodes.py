@@ -27,6 +27,12 @@ class Expression(Node):
 class Start():
     defs_or_decls: list = None
 
+# IMPORT
+
+@dataclass
+class Import:
+    file : str
+    func_names : list
 
 # DECLARATIONS
 

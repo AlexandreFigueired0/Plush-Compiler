@@ -19,6 +19,9 @@ class Context():
     def set_type(self, name, value, can_define=True):
         scope = self.stack[-1]
         scope[name] = (value, can_define)
+    
+    def has_function(self, name):
+        return name in self.functions
 
     def has_function(self, name):
         return name in self.functions
@@ -46,19 +49,27 @@ class Context():
     def exit_block(self):
         self.stack.pop()
 
-    def add_pre_def_funcs(self):
-        self.add_function(("print_int",[ValParam(name="x", type_ = IntType())],None), False)
-        self.add_function(("print_float",[ValParam(name="x", type_ = FloatType())],None), False)
-        self.add_function(("print_boolean",[ValParam(name="x", type_ = BooleanType())],None), False)
-        self.add_function(("print_string",[ValParam(name="s", type_ = StringType())],None), False)
-        self.add_function(("print_char",[ValParam(name="c", type_ = CharType())],None), False)
-        self.add_function(("print_int_array",[ValParam(name="a", type_ = ArrayType(type_=IntType())), ValParam(name="size", type_=IntType())],None), False)
-        self.add_function(("power_int",[ValParam(name="b", type_ = IntType()), ValParam(name="e", type_ = IntType())],IntType()), False)
-        self.add_function(("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType(), text="[int]")), False)
-        self.add_function(("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType(), text="[string]")), False)
-        self.add_function(("get_int_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=IntType()), text="[[int]]")), False)
-        self.add_function(("get_string_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=StringType()), text="[[string]]")), False)
-
+def add_pre_def_funcs(ctx: Context):
+    ctx.add_function(("print_int",[ValParam(name="x", type_ = IntType())],None), False)
+    ctx.add_function(("print_float",[ValParam(name="x", type_ = FloatType())],None), False)
+    ctx.add_function(("print_string",[ValParam(name="s", type_ = StringType())],None), False)
+    ctx.add_function(("print_char",[ValParam(name="c", type_ = CharType())],None), False)
+    ctx.add_function(("print_boolean",[ValParam(name="x", type_ = BooleanType())],None), False)
+    ctx.add_function(("print_int_array",[ValParam(name="a", type_ = ArrayType(type_=IntType())), ValParam(name="size", type_=IntType())],None), False)
+    ctx.add_function(("print_float_array",[ValParam(name="a", type_ = ArrayType(type_=FloatType())), ValParam(name="size", type_=IntType())],None), False)
+    ctx.add_function(("print_string_array",[ValParam(name="a", type_ = ArrayType(type_=StringType())), ValParam(name="size", type_=IntType())],None), False)
+    ctx.add_function(("print_char_array",[ValParam(name="a", type_ = ArrayType(type_=CharType())), ValParam(name="size", type_=IntType())],None), False)
+    ctx.add_function(("print_boolean_array",[ValParam(name="a", type_ = ArrayType(type_=BooleanType())), ValParam(name="size", type_=IntType())],None), False)
+    ctx.add_function(("string_to_char_array",[ValParam(name="s", type_ = StringType())],ArrayType(type_=CharType(), text = "[char]")), False)
+    ctx.add_function(("get_int_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=IntType(), text="[int]")), False)
+    ctx.add_function(("get_string_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=StringType(), text="[string]")), False)
+    ctx.add_function(("get_char_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=CharType(), text="[char]")), False)
+    ctx.add_function(("get_boolean_array",[ValParam(name="size", type_ = IntType())],ArrayType(type_=BooleanType(), text="[boolean]")), False)
+    ctx.add_function(("get_int_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=IntType()), text="[[int]]")), False)
+    ctx.add_function(("get_float_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=FloatType()), text="[float]")), False)
+    ctx.add_function(("get_string_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=StringType()), text="[[string]]")), False)
+    ctx.add_function(("get_char_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=CharType()), text="[[char]]")), False)
+    ctx.add_function(("get_boolean_matrix",[ValParam(name="rows", type_ = IntType()), ValParam(name="cols", type_ = IntType())],ArrayType(type_=ArrayType(type_=BooleanType()), text="[[boolean]]")), False)
 
 def gather_global_vars_and_funcs(ctx: Context, node):
     for global_node in node.defs_or_decls:
@@ -67,24 +78,24 @@ def gather_global_vars_and_funcs(ctx: Context, node):
             #     ctx.set_type(vname, type_)
             # case ValDefinition(vname, type_, expr):
             #     ctx.set_type(vname, type_, False)
-            case FunctionDeclaration(name, params, type_):
-                if ctx.has_var(name):
+            case FunctionDeclaration(_,_,_,_,_,name, params, type_):
+                if ctx.has_function(name):
                     raise TypeError(f"Function {name} already declared")
                 
-                ctx.set_type(name, (name,params,type_))
+                ctx.add_function(name, (name,params,type_))
 
-            case FunctionDefinition(name, params, type_, block):
-                if ctx.has_var(name) and ctx.get_type(name)[1] == False:
+            case FunctionDefinition(_,_,_,_,_,name, params, type_, block):
+                if ctx.has_function(name) and ctx.get_function(name)[1] == False:
                     raise TypeError(f"Function {name} already defined")
                 
-                ctx.set_type(name, (name,params,type_), False)
+                ctx.add_function((name,params,type_), False)
             case _:
                 pass
 
 def type_check(ctx : Context, node) -> bool:
     match node:
         case Start(defs_or_decls):
-            ctx.add_pre_def_funcs()
+            add_pre_def_funcs(ctx)
 
             gather_global_vars_and_funcs(ctx, node)
 
@@ -306,7 +317,6 @@ def type_check(ctx : Context, node) -> bool:
 
         case FunctionDefinition(_,_,_,_,_,name, params, type_, block):
             f_context = (name,params,type_)
-
 
             # Function declared, but not defined
             # TODO: Check if the arguments are correct, type and immut modifiers
