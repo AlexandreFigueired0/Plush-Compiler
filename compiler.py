@@ -468,26 +468,31 @@ def compile(emitter: Emitter, node):
         case _:
             raise TypeError(f"Unknown node type {node}")
         
-
-if __name__ == "__main__":
+def run(fname,print_tree=False):
     fname = sys.argv[-1]
     typed_tree = type_check_program(fname)
     e = Emitter()
     llvm_code = compile(e, typed_tree)
     # print(llvm_code)
-    with open("code.ll", "w") as f:
+    with open("llvm_code.ll", "w") as f:
         f.write(llvm_code)
     import subprocess
 
     lib_flags = "-lm"
     # /usr/local/opt/llvm/bin/lli code.ll
-    r = subprocess.call(
-        # "llc code.ll && clang code.s -o code -no-pie && ./code",
-        f"llc code.ll && gcc -c plush_functions.c && clang code.s plush_functions.o {lib_flags} -o code -no-pie && ./code",
-        # "lli code.ll",
+    r = subprocess.run(
+        f"llc llvm_code.ll && gcc -c plush_functions.c && clang llvm_code.s plush_functions.o {lib_flags} -o llvm_code -no-pie && ./llvm_code",
         shell=True,
+        capture_output=True
     )
-    if("--tree" in sys.argv):
+    if(print_tree):
         print(node_to_json(typed_tree))
+
+    return r.stdout.decode()
+
+if __name__ == "__main__":
+    fname = sys.argv[-1]
+    res = run(fname,"--tree" in sys.argv )
+    print(res)
     print()
 
