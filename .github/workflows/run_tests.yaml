@@ -12,7 +12,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: install package
-        run: apt-get update && apt-get install -y llvm clang gcc
+        run: sudo apt-get update && sudo apt-get install -y llvm clang gcc
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
       - name: Debug Information
