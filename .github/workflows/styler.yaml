@@ -19,7 +19,19 @@ jobs:
           pip install black flake8
 
       - name: Run Black
-        run: black --check .
+        run: black .
 
       - name: Run Flake8
         run: flake8 .
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[styler]"
+          git config --global user.email "github-actions[styler]@example.com"
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Apply Black formatting"
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
