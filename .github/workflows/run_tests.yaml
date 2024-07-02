@@ -16,3 +16,12 @@ jobs:
       - name: Run tests
         run: pytest -v
         working-directory: src
+      - name: Debug Information
+        run: |
+          echo "Working Directory: $(pwd)"
+          echo "List of files in tests/pl_programs:"
+          ls -la tests/pl_programs/
+          echo "Python Version:"
+          python --version
+          echo "Installed Packages:"
+          pip freeze
