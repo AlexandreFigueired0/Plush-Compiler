@@ -487,7 +487,7 @@ def run(fname,print_tree=False):
     if(print_tree):
         print(node_to_json(typed_tree))
 
-    return r.stdout.decode()
+    return r.stdout#.decode()
 
 if __name__ == "__main__":
     fname = sys.argv[-1]
