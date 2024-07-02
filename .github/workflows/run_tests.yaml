@@ -13,15 +13,8 @@ jobs:
         run: pip install -r requirements.txt
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
+      - name: Debug Information
+        run: ls -la tests/pl_programs/
       - name: Run tests
         run: pytest -v
         working-directory: src
-      - name: Debug Information
-        run: |
-          echo "Working Directory: $(pwd)"
-          echo "List of files in tests/pl_programs:"
-          ls -la tests/pl_programs/
-          echo "Python Version:"
-          python --version
-          echo "Installed Packages:"
-          pip freeze
