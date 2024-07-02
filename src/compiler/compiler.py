@@ -469,7 +469,6 @@ def compile(emitter: Emitter, node):
             raise TypeError(f"Unknown node type {node}")
         
 def run(fname,print_tree=False):
-    fname = sys.argv[-1]
     typed_tree = type_check_program(fname)
     e = Emitter()
     llvm_code = compile(e, typed_tree)
@@ -494,5 +493,4 @@ if __name__ == "__main__":
     fname = sys.argv[-1]
     res = run(fname,"--tree" in sys.argv )
     print(res)
-    print()
 

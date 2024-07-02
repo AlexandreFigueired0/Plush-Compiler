@@ -1,7 +1,7 @@
 # function print_boolean(val b: boolean);
 # function print_int(val i: int);
 
-val value : int := 121;
+val value : int := 12321;
 
 function digits(val num:int) : int {
     var n : int := num;
@@ -23,7 +23,7 @@ function isPalindromeNumber(var n:int) : boolean {
         var n_digits : int := digits(n);
 
         while n_digits > 1 {
-            var left : int := n / (10 ^ (n_digits - 2));
+            var left : int := n / (10 ^ (n_digits - 1));
             var right : int := n % 10;
             if left != right {
                 result := false;
