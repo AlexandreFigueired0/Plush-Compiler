@@ -13,7 +13,6 @@ jobs:
         run: pip install -r requirements.txt
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
-      - name: Go to src directory
-        run: cd src
       - name: Run tests
         run: pytest -v
+        working-directory: src
