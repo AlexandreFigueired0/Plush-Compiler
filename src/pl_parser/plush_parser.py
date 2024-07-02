@@ -5,7 +5,7 @@ import sys
 
 
 
-plush_grammar = f"""
+plush_grammar = fr"""
     start: (function_declaration | val_definition | var_definition | function_definition | import_)*
 
     !?function_declaration: FUNCTION NAME "(" params ")" (":" type)? SEMICOLON -> function_declaration
