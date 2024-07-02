@@ -1,4 +1,4 @@
-from compiler.compiler import run
+from src.compiler.compiler import run
 
 def test_plush_array_binary_search():
     fname = "tests/arrayBinarySearch.pl"

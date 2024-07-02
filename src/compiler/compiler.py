@@ -481,7 +481,7 @@ def run(fname,print_tree=False):
     lib_flags = "-lm"
     # /usr/local/opt/llvm/bin/lli code.ll
     r = subprocess.run(
-        f"llc llvm_code.ll && gcc -c plush_functions.c && clang llvm_code.s plush_functions.o {lib_flags} -o llvm_code -no-pie && ./llvm_code",
+        f"llc llvm_code.ll && gcc -c resources/plush_functions.c && clang llvm_code.s plush_functions.o {lib_flags} -o llvm_code -no-pie && ./llvm_code",
         shell=True,
         capture_output=True
     )
