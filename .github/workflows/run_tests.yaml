@@ -15,6 +15,7 @@ jobs:
         run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
       - name: Debug Information
         run: python3 compiler/compiler.py tests/pl_programs/arrayBinarySearch.pl
+        working-directory: src
       - name: Run tests
         run: pytest -v
         working-directory: src
