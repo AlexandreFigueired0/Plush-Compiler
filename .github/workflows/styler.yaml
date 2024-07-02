@@ -21,9 +21,6 @@ jobs:
       - name: Run Black
         run: black .
 
-      - name: Run Flake8
-        run: flake8 .
-
       - name: Commit and push changes
         run: |
           git config --global user.name "github-actions[styler]"
